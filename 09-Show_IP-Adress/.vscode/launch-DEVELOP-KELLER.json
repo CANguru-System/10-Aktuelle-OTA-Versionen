@@ -1,0 +1,32 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "e:/v17209/OneDrive - implement mission-critical ROI/15 Anlage Steinheim/04-Tag-4-master/Show_IP-Adress/.pio/build/nodemcu-32s/firmware.elf",
+            "toolchainBinDir": "C:/Users/gusta/.platformio/packages/toolchain-xtensa32/bin",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug"
+            },
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "executable": "e:/v17209/OneDrive - implement mission-critical ROI/15 Anlage Steinheim/04-Tag-4-master/Show_IP-Adress/.pio/build/nodemcu-32s/firmware.elf",
+            "toolchainBinDir": "C:/Users/gusta/.platformio/packages/toolchain-xtensa32/bin",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}
