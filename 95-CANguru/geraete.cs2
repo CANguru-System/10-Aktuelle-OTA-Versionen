@@ -1,0 +1,25 @@
+[geraete]
+version
+ .minor=1
+device
+ .uid=0x45009193
+ .kennung=0xffff
+ .typ=80
+ .vminor=8
+device
+ .uid=0x45009195
+ .kennung=0xffff
+ .typ=83
+ .vminor=9
+ .kanal
+ ..nr=1
+ ..wert=33
+ .kanal
+ ..nr=2
+ ..wert=1
+device
+ .uid=0x47441918
+ .kennung=0xffff
+ .typ=16
+ .vmajor=1
+ .vminor=39
