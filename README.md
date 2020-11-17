@@ -5,7 +5,7 @@ In diesem Repository werden alle CANguru-Decoder aus dem Buch eingestellt, die d
 Im Folgenden wird dargestellt, wie die Software auf die Decoder aufgebracht wird.  
 Die CANguru-Bridge spielt eine Sonderrolle, da sie nicht OTA-fähig ist. Alle anderen werden auf die gleiche Weise behandelt. Deshalb zunächst die  
 **CANguru-Bridge**  
-Die CANguru-Bridge wird immer mit dem flashtool bedampft. Wie das geht, steht in dem gleichnamigen Repository. Die Dateien liegen in dem Verzeichnis Files.
+Die CANguru-Bridge wird immer mit dem flashtool bedampft. Wie das geht, steht in dem gleichnamigen Repository. Die Dateien liegen in dem Verzeichnis Files.  
 **Alle anderen Decoder**   
 Im Internet findet man diverse Programme, mit deren Hilfe man OTA implementieren kann. Leider sind diese Beispiele auf die CANguru-Decoder nicht direkt anwendbar, da für OTA natürlich die Decoder am WLAN mit ihrem "Drahtlos-Ohr" lauschen müssen, um festzustellen, ob eventuell eine Neuprogrammierung ansteht. Aber gerade das ist in unserem Falle nicht möglich, da wir die "Ohren" unseres ESP32 für die ESPNow-Verbindungen einsetzen. Wir müssen uns also etwas anderes überlegen.  
 Wie ist also dafür vorzugehen?   
