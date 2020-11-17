@@ -15,6 +15,6 @@ Das ist der Vorgang, um ein OTA-Programm zum ersten Mal aufs Board zu bringen.
   
 Wenn Sie später im Betrieb Änderungen oder eine neue Version aufs Board laden wollen, gehen Sie anders vor. Dafür gibt es eine geänderte Version der CANguru-Bridge und des CANguru-Servers. Laden Sie beide herunter. Installieren Sie die Bridge über das USB-Kabel auf dem Board. Wenn Sie nun einen OTA-Prozess für ein OTA-Programm starten wollen, klicken Sie beim CANguru-Server auf den Reiter Konfiguration. Dort sind wie bisher alle angeschlossenen Decoder aufgelistet. Klicken Sie in der Listbox den gewünschten Decoder an. Rechts wird zur Kontrolle seine IP-Adresse angezeigt. Klicken Sie nun auf den Button "Over The Air (OTA)". Der zugehörige Decoder versucht nun sich ins WLAN einzuloggen und ist anschließend für das Laden eines neuen Programmes Over the air bereit. Diesen Ladevorgang starten Sie nun mit dem ESP32_GUI_Programmer wie oben beschrieben.  
   
-An dieser Stelle muss ich mich bei dem Entwickler des ESP32_GUI_Programmers Kevin Darrah bedanken. Die Anwendung dieses Programmes ist eine große Erleichterung bei der Installation neuer Versionen. Vielen Dank!
+An dieser Stelle muss ich mich bei dem Entwickler des ESP32_GUI_Programmers Kevin Darrah bedanken. Die Anwendung dieses Programmes ist eine große Erleichterung bei der Installation neuer Versionen. Vielen Dank!  
 Viel Erfolg!
 
