@@ -4,9 +4,9 @@ CANguru-Decoder mit "Over The Air" Möglichkeit (siehe auch unter Rep 90)
 In diesem Repository werden alle CANguru-Decoder aus dem Buch eingestellt, die dann direkt über das WLAN, ohne eine Verbindung zwischen PC und Decoder mit einem USB-Kabel herstellen zu müssen. Das ist insbesondere dann von Vorteil, wenn der Decoder irgendwo auf der Anlage eingebaut ist. Weiterhin sind Verbesserungen oder teilweise auch kleine Unzulänglichkeiten in der Software beseitigt.
 Im Folgenden wird dargestellt, wie die Software auf die Decoder aufgebracht wird.  
 Die CANguru-Bridge spielt eine Sonderrolle, da sie nicht OTA-fähig ist. Alle anderen werden auf die gleiche Weise behandelt. Deshalb zunächst die  
-CANguru-Bridge  
-Die CANguru-Brdige wird immer mit dem flashtool bedampft. Wie das geht, steht in dem gleichnamigen Repsitory. Die Dateien liegen in dem Verzeichnis Files.
-Alle anderen Decoder   
+**CANguru-Bridge**  
+Die CANguru-Bridge wird immer mit dem flashtool bedampft. Wie das geht, steht in dem gleichnamigen Repository. Die Dateien liegen in dem Verzeichnis Files.
+**Alle anderen Decoder**   
 Im Internet findet man diverse Programme, mit deren Hilfe man OTA implementieren kann. Leider sind diese Beispiele auf die CANguru-Decoder nicht direkt anwendbar, da für OTA natürlich die Decoder am WLAN mit ihrem "Drahtlos-Ohr" lauschen müssen, um festzustellen, ob eventuell eine Neuprogrammierung ansteht. Aber gerade das ist in unserem Falle nicht möglich, da wir die "Ohren" unseres ESP32 für die ESPNow-Verbindungen einsetzen. Wir müssen uns also etwas anderes überlegen.  
 Wie ist also dafür vorzugehen?   
 Zunächst ist das Programm Show_IP-Adress über USB mit dem flashtool auf das Board zu laden. Das Programm löscht bei Bedarf alle Daten im EEPROM und listet anschließend alle möglichen WLAN-Verbindungen auf. Diese Angaben sieht man, wenn man ein Terminalprogramm wie beispielsweise TERA TERM startet. Wählen Sie dann durch Eingabe der korrespondierenden Ziffer ein WLAN aus und geben Sie das zugehörige Passwort ein. Nun versucht das Board, sich in das ausgewählte WLAN einzuloggen. War das erfolgreich, wird die zugehörige IP-Adresse dieses Boards angezeigt.  
