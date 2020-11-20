@@ -1,6 +1,8 @@
 # 10-Aktuelle Versionen-  
 CANguru-Decoder mit "Over The Air" Möglichkeit (siehe auch unter Rep 90)  
-
+**Hinweis zum CANguru-Server**  
+Der CANguru-Server wurde dahingehend erweitert, dass er nicht nur mit WinDigiPet zusammenarbeitet, sondern auch mit anderen Programmen. Dabei konnten die Tests dafür nur eingeschränkt durchgeführt werden, da außer bei WinDigiPet und der Märklin-APP für iOS nur Testversionen zur Verfügung standen. Für einige dieser Programme müssen spezielle Dateien beim Start zur Verfügung stehen. Deshalb beachten Sie folgenden Hinweis. Der CANguru-Server legt nach seinem ersten Start ein Verzeichnis mit dem Namen CANGURU auf dem Laufwerk C:/ an. In dieses Verzeichnis müssen die angesprochenen Dateien kopiert werden. Diese Dateien finden Sie in diesem Repository in dem Ordner 95-CANGURU.  
+**Upload neuer Versionen**  
 In diesem Repository werden alle CANguru-Decoder aus dem Buch eingestellt, die dann direkt über das WLAN, ohne eine Verbindung zwischen PC und Decoder mit einem USB-Kabel herstellen zu müssen. Das ist insbesondere dann von Vorteil, wenn der Decoder irgendwo auf der Anlage eingebaut ist. Weiterhin sind Verbesserungen oder teilweise auch kleine Unzulänglichkeiten in der Software beseitigt.
 Im Folgenden wird dargestellt, wie die Software auf die Decoder aufgebracht wird.  
 Die CANguru-Bridge spielt eine Sonderrolle, da sie nicht OTA-fähig ist. Alle anderen werden auf die gleiche Weise behandelt. Deshalb zunächst die  
