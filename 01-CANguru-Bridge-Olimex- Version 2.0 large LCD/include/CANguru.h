@@ -12,7 +12,7 @@
 // Bmp-Logo of an CANguru
 #include <stdint.h>
 
-const String CgVersionnmbr = "2.0";
+const String CgVersionnmbr = "2.0a";
 const String CgVersion = "CANguru " + CgVersionnmbr;
 
 #include "display2use.h"
