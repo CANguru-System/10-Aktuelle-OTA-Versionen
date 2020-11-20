@@ -274,7 +274,7 @@ void initDisplayLCD28()
   display9341.setTextColor(ILI9341_RED); // Draw red text
   display9341.setTextSize(2);            // Draw 2X-scale text
   displayLCD("CANguru-Bridge");
-  displayLCD(version);
+  displayLCD(CgVersion.c_str());
   displayLCD("");
   display9341.setTextColor(ILI9341_WHITE); // Draw white text
 }
