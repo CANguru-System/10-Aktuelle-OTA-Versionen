@@ -180,6 +180,7 @@ void WiFiEvent(WiFiEvent_t event)
 // sowie das Absenden des PING
 void timer1s()
 {
+  static uint8_t time2SendPing = 1;
   secs++;
   if (get_time4Scanning() == true)
   {
@@ -192,19 +193,28 @@ void timer1s()
   if (secs % maxDevices == 0)
     setbfillRect();
   uint8_t slaveCnt = get_slaveCnt();
-  if (slaveCnt > 0) {
-    if ((secs / (maxDevices/slaveCnt)) % 2 == 0)
+  if (slaveCnt > 0)
+  {
+    if ((secs / (maxDevices / slaveCnt)) % 2 == 0)
       currStatus = even;
     else
       currStatus = odd;
   }
+  // periodic ping
   if (get_SYSseen())
-    if (secs % wait_for_ping * maxDevices == 0)
+  {
+    if (secs % maxDevices == 0)
     {
+      time2SendPing++;
+    }
+    if (time2SendPing % wait_for_ping == 0)
+    {
+      time2SendPing = 1;
       produceFrame(M_CAN_PING);
       proc2CAN(M_PATTERN, toClnt);
       sendOutTCP(M_PATTERN);
     }
+  }
 }
 
 // Start des Timers
