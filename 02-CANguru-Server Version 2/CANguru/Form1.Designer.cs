@@ -71,7 +71,8 @@
             this.numUpDnDelay = new System.Windows.Forms.NumericUpDown();
             this.btnGetData = new System.Windows.Forms.Button();
             this.btnSetData = new System.Windows.Forms.Button();
-            this.verboseChBox = new System.Windows.Forms.CheckBox();
+            this.btnVerbose = new System.Windows.Forms.Button();
+            this.resetButton = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.Telnet.SuspendLayout();
             this.groupCommand.SuspendLayout();
@@ -424,6 +425,7 @@
             // 
             // Configuration
             // 
+            this.Configuration.Controls.Add(this.resetButton);
             this.Configuration.Controls.Add(this.deviceIP);
             this.Configuration.Controls.Add(this.otaBtn);
             this.Configuration.Controls.Add(this.CANElemente);
@@ -436,7 +438,7 @@
             // 
             // deviceIP
             // 
-            this.deviceIP.Location = new System.Drawing.Point(301, 83);
+            this.deviceIP.Location = new System.Drawing.Point(301, 112);
             this.deviceIP.Name = "deviceIP";
             this.deviceIP.Size = new System.Drawing.Size(100, 20);
             this.deviceIP.TabIndex = 4;
@@ -520,28 +522,37 @@
             this.btnSetData.Size = new System.Drawing.Size(75, 23);
             this.btnSetData.TabIndex = 0;
             // 
-            // verboseChBox
+            // btnVerbose
             // 
-            this.verboseChBox.AutoSize = true;
-            this.verboseChBox.Location = new System.Drawing.Point(200, 552);
-            this.verboseChBox.Name = "verboseChBox";
-            this.verboseChBox.Size = new System.Drawing.Size(64, 17);
-            this.verboseChBox.TabIndex = 21;
-            this.verboseChBox.Text = "verbose";
-            this.verboseChBox.UseVisualStyleBackColor = true;
-            this.verboseChBox.CheckedChanged += new System.EventHandler(this.verboseChBox_CheckedChanged);
+            this.btnVerbose.Location = new System.Drawing.Point(202, 549);
+            this.btnVerbose.Name = "btnVerbose";
+            this.btnVerbose.Size = new System.Drawing.Size(134, 23);
+            this.btnVerbose.TabIndex = 21;
+            this.btnVerbose.Text = "btnVerbose";
+            this.btnVerbose.UseVisualStyleBackColor = true;
+            this.btnVerbose.Click += new System.EventHandler(this.btnVerbose_Click);
+            // 
+            // resetButton
+            // 
+            this.resetButton.Location = new System.Drawing.Point(292, 69);
+            this.resetButton.Name = "resetButton";
+            this.resetButton.Size = new System.Drawing.Size(128, 23);
+            this.resetButton.TabIndex = 5;
+            this.resetButton.Text = "Reset Decoder";
+            this.resetButton.UseVisualStyleBackColor = true;
+            this.resetButton.Click += new System.EventHandler(this.resetButton_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(493, 579);
-            this.Controls.Add(this.verboseChBox);
+            this.Controls.Add(this.btnVerbose);
             this.Controls.Add(this.btnVolt);
             this.Controls.Add(this.beenden);
             this.Controls.Add(this.tabControl1);
             this.Name = "Form1";
-            this.Text = "CANguru-Server 2.0 b";
+            this.Text = "CANguru-Server 2.0 d";
             this.tabControl1.ResumeLayout(false);
             this.Telnet.ResumeLayout(false);
             this.groupCommand.ResumeLayout(false);
@@ -561,7 +572,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numUpDnDecNumber)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numUpDnDelay)).EndInit();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -609,7 +619,8 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.GroupBox groupBox3;
-        private System.Windows.Forms.CheckBox verboseChBox;
+        private System.Windows.Forms.Button btnVerbose;
+        private System.Windows.Forms.Button resetButton;
     }
 }
 

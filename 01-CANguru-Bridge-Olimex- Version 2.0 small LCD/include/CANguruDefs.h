@@ -21,6 +21,15 @@
 #define min_char1 3
 #define bdrMonitor 115200
 
+#define data0 5
+#define data1 6
+#define data2 7
+#define data3 8
+#define data4 9
+#define data5 10
+#define data6 11
+#define data7 12
+
 /*
  *  Gerätetypen
  */
@@ -53,6 +62,7 @@
 #define DEVTYPE_CS2 0x00FF
 #define DEVTYPE_FirstCANguru 0x004F
 #define DEVTYPE_BASE 0x0050
+#define DEVTYPE_TRAFFICLIGHT 0x0051
 #define DEVTYPE_SERVO 0x0053
 #define DEVTYPE_RM 0x0054
 #define DEVTYPE_LIGHT 0x0055
@@ -104,6 +114,8 @@
 /*
  * CAN-Befehle (eigene)
 */
+#define ConfigData 0x40
+#define ConfigData_R 0x41
 #define MfxProc 0x50
 #define MfxProc_R 0x51
 #define sendInitialData 0x52
@@ -118,6 +130,7 @@
 #define SEND_IP 0x64
 #define SEND_IP_R SEND_IP + 1
 #define CALL4CONNECT 0x88
+#define RESET_MEM 0xFE
 #define START_OTA 0xFF
 
 // damit 1024 (eigentlich 1023) Artikel adressiert werden können,
@@ -125,12 +138,6 @@
 const int16_t minadr = 0x01;
 const int16_t maxadr = 0xFF;
 const uint8_t uid_num = 4;
-
-struct deviceparams
-{
-  uint8_t decoderadr;
-  uint8_t uid_device[uid_num];
-};
 
 // converts highbyte of integer to char
 char highbyte2char(int num);

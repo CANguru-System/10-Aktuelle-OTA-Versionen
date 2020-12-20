@@ -205,13 +205,21 @@ namespace CANguruX
                         verbose = v == 1;
                     if (verbose)
                     {
-                        verboseChBox.Text = "Verbose";
-                        verbose = true;
+                        btnVerbose.Text = "Not verbose";
                     }
                     else
                     {
-                        verboseChBox.Text = "Not Verbose";
+                        btnVerbose.Text = "Verbose";
                         verbose = false;
+                    }
+                    if (Voltage)
+                    {
+                        btnVolt.Text = "Gleisspannung AUS";
+                    }
+                    else
+                    {
+                        btnVolt.Text = "Gleisspannung AUS";
+                        Voltage = false;
                     }
                 }
                 else
@@ -1078,7 +1086,7 @@ namespace CANguruX
                         if ((lastCMD == 0x08) && (currCMD == 0x08) ||
                         // außer Rückmeldung
                             (lastCMD == 0x23) && (currCMD == 0x23))
-                                lastCMD = 0x00;
+                            lastCMD = 0x00;
                         bool repeat = lastCMD == currCMD;
                         lastCMD = currCMD;
                         if (repeat)
@@ -1661,6 +1669,21 @@ namespace CANguruX
             CANClient.Send(OTA_START, Cnames.lngFrame);
         }
 
+        private void resetButton_Click(object sender, EventArgs e)
+        {
+            // initialize ota
+            byte[] RESET_START = { 0x00, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x00 };
+
+            if (is_connected == false)
+                return;
+            // UID eintragen
+            for (byte i = 5; i < 9; i++)
+                RESET_START[i] = CANguruPINGArr[lastSelectedItem, i];
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, RESET_START));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(RESET_START, Cnames.lngFrame);
+        }
+
         private void restartTheBridge()
         {
             byte[] RESTART_BRIDGE = { 0x00, 0x62, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -1677,19 +1700,17 @@ namespace CANguruX
             myQueue.resetQueue();
         }
 
-        private void verboseChBox_CheckedChanged(object sender, EventArgs e)
+        private void btnVerbose_Click(object sender, EventArgs e)
         {
-            // The CheckBox control's Text property is changed each time the
-            // control is clicked, indicating a checked or unchecked state.  
-            if (verboseChBox.Checked)
+            if (verbose)
             {
-                verboseChBox.Text = "Verbose";
-                verbose = true;
+                btnVerbose.Text = "Verbose";
+                verbose = false;
             }
             else
             {
-                verboseChBox.Text = "Not Verbose";
-                verbose = false;
+                btnVerbose.Text = "Not verbose";
+                verbose = true;
             }
         }
     }

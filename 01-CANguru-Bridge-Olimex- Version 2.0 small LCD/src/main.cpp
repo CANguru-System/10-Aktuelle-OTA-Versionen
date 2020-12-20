@@ -434,6 +434,7 @@ void sendOutClnt(uint8_t *buffer, CMD dir)
     switch (buffer[0x09])
     {
     case SYS_STAT:
+    case RESET_MEM:
     case START_OTA:
       send2OneClient(buffer);
       break;
