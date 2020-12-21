@@ -1673,15 +1673,23 @@ namespace CANguruX
         {
             // initialize ota
             byte[] RESET_START = { 0x00, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x00 };
+            string message = "Wollen Sie wirklich alle Werte zurücksetzen??";
+            string caption = "Reset";
+            MessageBoxButtons buttons = MessageBoxButtons.YesNo;
+            DialogResult result = MessageBox.Show(this, message, caption, buttons);
 
             if (is_connected == false)
                 return;
-            // UID eintragen
-            for (byte i = 5; i < 9; i++)
-                RESET_START[i] = CANguruPINGArr[lastSelectedItem, i];
-            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, RESET_START));
-            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-            CANClient.Send(RESET_START, Cnames.lngFrame);
+            if (result == DialogResult.Yes)
+            {
+                // Aufräumen
+                // UID eintragen
+                for (byte i = 5; i < 9; i++)
+                    RESET_START[i] = CANguruPINGArr[lastSelectedItem, i];
+                ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, RESET_START));
+                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                CANClient.Send(RESET_START, Cnames.lngFrame);
+            }
         }
 
         private void restartTheBridge()
