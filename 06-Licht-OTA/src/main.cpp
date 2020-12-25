@@ -102,16 +102,6 @@ void timer1ms()
   }
 }
 
-// Funktion stellt sicher, dass keine unerlaubten Werte geladen werden können
-uint16_t readValfromEEPROM(uint16_t adr, uint16_t val, uint16_t min, uint16_t max)
-{
-  uint16_t v = EEPROM.readUShort(adr);
-  if ((v >= min) && (v <= max))
-    return v;
-  else
-    return val;
-}
-
 void setup()
 {
   Serial.begin(bdrMonitor);
@@ -199,15 +189,15 @@ void setup()
   for (uint8_t ch = 0; ch < cntChannels; ch++)
   {
   // Kanalnummer #1 - Dunkelphase
-    channels[ch].setoffTime(readValfromEEPROM(adr_offTime, offTimeStart, offTimeMin, offTimeMax));
+    channels[ch].setoffTime(readValfromEEPROM16(adr_offTime, offTimeStart, offTimeMin, offTimeMax));
   // Kanalnummer #2 - Helligkeit
-    channels[ch].setonTime(readValfromEEPROM(adr_onTime, onTimeStart, onTimeMin, onTimeMax));
+    channels[ch].setonTime(readValfromEEPROM16(adr_onTime, onTimeStart, onTimeMin, onTimeMax));
   // Kanalnummer #3 - Dim
-    channels[ch].setDim(readValfromEEPROM(adr_Dim, dimStart, dimMin, dimMax));
+    channels[ch].setDim(readValfromEEPROM16(adr_Dim, dimStart, dimMin, dimMax));
   // Kanalnummer #4 - Geschwindigkeit
-    channels[ch].setSpeed(readValfromEEPROM(adr_speed, speedStart, speedMin, speedMax));
+    channels[ch].setSpeed(readValfromEEPROM16(adr_speed, speedStart, speedMin, speedMax));
   // Kanalnummer #5 ff- LEDProgramm für die einzelnen Expander festlegen
-    channels[ch].begin(ch, (LEDPrograms)readValfromEEPROM(adr_prog+ch, ch, progMin, progMax));
+    channels[ch].begin(ch, (LEDPrograms)readValfromEEPROM16(adr_prog+ch, ch, progMin, progMax));
   }
   // every milli sec
   tckr1.attach(tckr1Time, timer1ms);
@@ -260,13 +250,6 @@ Byte 5	D-Byte 5	8 Bit Daten
 Byte 6	D-Byte 6	8 Bit Daten
 Byte 7	D-Byte 7	8 Bit Daten
 */
-
-// Mit testMinMax wird festgestellt, ob ein Wert innerhalb der
-// Grenzen von min und max liegt
-bool testMinMax(uint16_t oldval, uint16_t val, uint16_t min, uint16_t max)
-{
-  return (oldval != val) && (val >= min) && (val <= max);
-}
 
 // receiveKanalData dient der Parameterübertragung zwischen Decoder und CANguru-Server
 // es erhält die evtuelle auf dem Server geänderten Werte zurück

@@ -55,3 +55,16 @@ E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Serve
 E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
 E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
 E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CoreCompileInputs.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb

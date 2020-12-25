@@ -62,6 +62,9 @@ namespace CANguruX
         //
         private static System.Timers.Timer gettingConnectionTimer;
         Int16 elapsedmillis4Connection;
+        //
+        private static System.Timers.Timer showResetValuesTimer;
+        Int16 elapsedmillis4showResetValues;
         // gleisbild
         int cntGleisbild = 0;
         //
@@ -1625,6 +1628,7 @@ namespace CANguruX
             configControls.controlChoice = new Control[maxIndex];
             getConfigData(CANguruArrWorked, CANguruArrIndex);
         }
+
         private void CANElemente_SelectedIndexChanged(object sender, EventArgs e)
         {
             int curItem = CANElemente.SelectedIndex;
@@ -1669,6 +1673,27 @@ namespace CANguruX
             CANClient.Send(OTA_START, Cnames.lngFrame);
         }
 
+        private void ShowStdValues (Object source, ElapsedEventArgs e)
+        {
+            elapsedmillis4showResetValues++;
+            if (elapsedmillis4showResetValues > 25)
+            {
+                showResetValuesTimer.Enabled = false;
+                this.CANElemente.Invoke(new MethodInvoker(() => CANElemente_SelectedIndexChanged(source, e)));
+            }
+        }
+
+        private void SetshowResetValuesTimer()
+        {
+            // Create a timer with a 20 milli interval.
+            showResetValuesTimer = new System.Timers.Timer(20);
+            // Hook up the Elapsed event for the timer. 
+            showResetValuesTimer.Elapsed += ShowStdValues;
+            showResetValuesTimer.AutoReset = true;
+            showResetValuesTimer.Enabled = true;
+            elapsedmillis4showResetValues = 0;
+        }
+
         private void resetButton_Click(object sender, EventArgs e)
         {
             // initialize ota
@@ -1682,6 +1707,7 @@ namespace CANguruX
                 return;
             if (result == DialogResult.Yes)
             {
+                SetshowResetValuesTimer();
                 // Aufräumen
                 // UID eintragen
                 for (byte i = 5; i < 9; i++)

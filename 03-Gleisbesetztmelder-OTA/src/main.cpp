@@ -169,16 +169,6 @@ void timer1ms()
   }
 }
 
-// Funktion stellt sicher, dass keine unerlaubten Werte geladen werden können
-uint8_t readValfromEEPROM(uint16_t adr, uint8_t val, uint8_t min, uint8_t max)
-{
-  uint8_t v = EEPROM.read(adr);
-  if ((v >= min) && (v <= max))
-    return v;
-  else
-    return val;
-}
-
 void setup()
 {
   Serial.begin(bdrMonitor);
@@ -324,13 +314,6 @@ Byte 5	D-Byte 5	8 Bit Daten
 Byte 6	D-Byte 6	8 Bit Daten
 Byte 7	D-Byte 7	8 Bit Daten
 */
-
-// Mit testMinMax wird festgestellt, ob ein Wert innerhalb der
-// Grenzen von min und max liegt
-bool testMinMax(uint8_t oldval, uint8_t val, uint8_t min, uint8_t max)
-{
-  return (oldval != val) && (val >= min) && (val <= max);
-}
 
 // receiveKanalData dient der Parameterübertragung zwischen Decoder und CANguru-Server
 // es erhält die evtuelle auf dem Server geänderten Werte zurück
