@@ -608,7 +608,7 @@ void sendConfig()
   const uint8_t Kanalwidth = 8;
   const uint8_t numberofKanals = endofKanals - 1;
 
-  const uint8_t NumLinesKanal00 = 4 * Kanalwidth;
+  const uint8_t NumLinesKanal00 = 5 * Kanalwidth;
   uint8_t arrKanal00[NumLinesKanal00] = {
       /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
       /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
@@ -616,7 +616,8 @@ void sendConfig()
       /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
       /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
       /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
-      /*4*/ 'S', 'i', 'g', 'n', 'a', 'l', 0, 0};
+      /*4*/ 'M', 'a', 'x', 'i', '-', 'S', 'i', 'g',
+      /*5*/ 'n', 'a', 'l', 0, 0, 0, 0, 0};
   const uint8_t NumLinesKanal01 = 4 * Kanalwidth;
   uint8_t arrKanal01[NumLinesKanal01] = {
       // #2 - WORD immer Big Endian, wie Uhrzeit

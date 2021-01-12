@@ -364,7 +364,7 @@ void send2AllClients(uint8_t *buffer)
 }
 
 // wenn aus der UID des Frames ein Slave identifizierbar ist, wird der
-// Frame nur an diesen Slave geschickt, ansinsten an alle
+// Frame nur an diesen Slave geschickt, ansonsten an alle
 void send2OneClient(uint8_t *buffer)
 {
   uint8_t ss = matchUID(buffer);
@@ -374,11 +374,11 @@ void send2OneClient(uint8_t *buffer)
     sendTheData(ss, buffer, CAN_FRAME_SIZE);
 }
 
-void writeTCP(uint8_t *tcb, uint16_t lng)
+void writeTCP(uint8_t *tcb, uint16_t strlng)
 {
   if (TCPclient)
   {
-    TCPclient.write(tcb, lng);
+    TCPclient.write(tcb, strlng);
     delay(2);
   }
 }
@@ -667,19 +667,6 @@ void proc_fromCAN2SYSandGW()
       UDPbuffer[5 + i] = CAN.read();
       i++;
     }
-    /*
-12:50:54.119 packet from: 192.168.178.21
-12:50:54.120   ->TCP>CAN     0x00084711   [6] 00 00 40 0d 01 0d(00 00)  ..@.....
-12:50:54.120   ->CAN>UDP     0x00084711   [6] 00 00 40 0d 01 0d(00 00)  ..@.....
-12:50:54.121   ->CAN>UDP     0x00092353   [6] 00 00 40 0d 01 0d(00 00)  ..@.....
-12:50:54.121   ->CAN>TCP     0x00092353   [6] 00 00 40 0d 01 0d(00 00)  ..@.....
-12:51:02.130   ->CAN>UDP     0x00092353   [6] 00 00 40 0d 01 0d(00 00)  ..@.....
-
->TCP>Clnt>0x00(08)4711   [06] 00 00 40 0D 01 11 00 00 ..@.....
->TCP>CAN> 0x00(08)4711   [06] 00 00 40 0D 01 11 00 00 ..@.....
->CAN>UDP> 0x00(09)5F5E R [06] 00 00 40 0D 01 11 00 00 ..@.....
->CAN>TCP> 0x00(09)5F5E R [06] 00 00 40 0D 01 11 00 00 ..@.....
-    */
     // send UDP
     print_can_frame(5, UDPbuffer);
     switch (UDPbuffer[0x01])
