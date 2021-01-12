@@ -347,7 +347,7 @@ Byte 7	D-Byte 7	8 Bit Daten
 // für Weiche, nämlich turnout
 void calc_to_address()
 {
-  uint16_t baseAddress = (decoderadr - 1) * num_LEDSignals;
+  uint16_t baseAddress = (decoderadr - 1) * num_accessory; // num_accessory immer 4
   // berechnet die _to_address aus der Adresse und der Protokollkonstante
   // Formsignale
   for (uint8_t form = 0; form < num_FormSignals; form++)
