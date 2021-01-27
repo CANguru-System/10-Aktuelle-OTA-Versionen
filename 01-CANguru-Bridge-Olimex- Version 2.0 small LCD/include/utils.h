@@ -187,6 +187,9 @@ void timer1s()
     if (secs > (maxDevices / 2))
     {
       set_time4Scanning(false);
+      produceFrame(M_CAN_PING);
+      proc2CAN(M_PATTERN, toClnt);
+      sendOutTCP(M_PATTERN);
     }
   }
   // startet den fillTheCircle()-Prozess; Ausgabe pulsiert mit einem Kreis

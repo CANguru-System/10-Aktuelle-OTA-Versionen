@@ -688,7 +688,7 @@ void proc_fromCAN2SYSandGW()
 #ifdef LCD28
         displayLCD(" -- No Slaves!");
 #endif
-        goSYS();
+        goSYS();      
         set_waiting4Handshake(false);
       }
       break;
