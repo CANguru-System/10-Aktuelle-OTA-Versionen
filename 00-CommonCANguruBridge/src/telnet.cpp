@@ -107,7 +107,7 @@ void canguruETHClient::printTelnet(bool nl, String str, uint8_t indent)
       if (nl)
         tlntClnt.write("\r\n", 2);
     }
-    delay(5);
+//    delay(5);
   }
 }
 

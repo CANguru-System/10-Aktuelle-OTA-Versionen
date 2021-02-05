@@ -133,6 +133,7 @@
 #define restartBridge 0x62
 #define SEND_IP 0x64
 #define SEND_IP_R SEND_IP + 1
+#define INIT_COMPLETE 0x66
 #define CALL4CONNECT 0x88
 #define RESET_MEM 0xFE
 #define START_OTA 0xFF
@@ -142,6 +143,7 @@
 const int16_t minadr = 0x01;
 const int16_t maxadr = 0xFF;
 const uint8_t uid_num = 4;
+const uint8_t num_accessory = 4;
 
 // Funktion stellt sicher, dass keine unerlaubten 8-Bit-Werte geladen werden können
 uint8_t readValfromEEPROM(uint16_t adr, uint8_t val, uint8_t min, uint8_t max);
