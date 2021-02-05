@@ -550,6 +550,8 @@ void proc_fromUDP2CAN()
     switch (UDPbuffer[0x01])
     {
     case PING:
+      produceFrame(M_CAN_PING_CS2); //% M_CAN_PING_CS2_2
+      sendOutUDP(M_PATTERN);
       produceFrame(M_CAN_PING_CS2_2);
       sendOutUDP(M_PATTERN);
       set_SYSseen(true);
@@ -1114,9 +1116,9 @@ uint32_t getDataSize(uint8_t f)
   // to Gateway
   sendOutGW(M_PATTERN);
   uint16_t packetSize = 0;
-  uint8_t loctimer = secs;
+//  uint8_t loctimer = secs;
   // maximal 2 Sekunden warten
-  while (packetSize == 0 && secs < loctimer + 2)
+  while (packetSize == 0) // && secs < loctimer + 2)
   {
     yield();
     packetSize = UdpINGW.parsePacket();

@@ -1,0 +1,67 @@
+[lokomotive]
+version
+ .minor=3
+session
+ .id=32
+lokomotive
+ .name=111 088-1 DB AG
+ .uid=0x4005
+ .adresse=0x5
+ .typ=mfx
+ .sid=0x5
+ .mfxuid=0x5445e584
+ .icon=BR 111
+ .av=15
+ .bv=15
+ .volume=255
+ .tachomax=160
+ .vmin=8
+ .spm=2
+ .ft=0x5
+ .funktionen
+ ..nr=0
+ ..typ=1
+ .funktionen
+ ..nr=1
+ ..typ=40
+ .funktionen
+ ..nr=2
+ ..typ=23
+ ..wert=1
+ .funktionen
+ ..nr=3
+ ..typ=12
+ .funktionen
+ ..nr=4
+ ..typ=18
+ .funktionen
+ ..nr=5
+ ..typ=20
+ .funktionen
+ ..nr=6
+ ..typ=41
+ .funktionen
+ ..nr=7
+ ..typ=11
+ .funktionen
+ ..nr=8
+ ..typ=42
+ .funktionen
+ ..nr=9
+ ..typ=153
+ .funktionen
+ ..nr=10
+ ..typ=19
+ .funktionen
+ ..nr=11
+ ..typ=220
+ .funktionen
+ ..nr=12
+ ..typ=8
+ .funktionen
+ ..nr=13
+ ..typ=112
+ .funktionen
+ ..nr=14
+ .funktionen
+ ..nr=15
