@@ -263,7 +263,7 @@ namespace CANguruX
             lokconfig[index].locid = new byte[2];
             lokconfig[index].typ = new byte[1];
             lokconfig[index].typ[0] = 0x00;
-            Array.Resize(ref lokconfig[index].lokname, 50);
+            Array.Resize(ref lokconfig[index].lokname, 255);
             lokconfig[index].mfxuid = new byte[8];
         }
 

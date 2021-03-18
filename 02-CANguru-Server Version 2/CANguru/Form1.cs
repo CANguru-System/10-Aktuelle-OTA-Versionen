@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -19,7 +20,7 @@ namespace CANguruX
         enum CMD
         {
             toCAN, toClnt, toUDP, toTCP, fromCAN, fromClnt, fromUDP, fromTCP, fromUDP2CAN, fromTCP2CAN, fromTCP2Clnt, fromCAN2UDP, fromCAN2TCP,
-            fromGW2Clnt, fromGW2CAN, toGW, fromGW
+            fromGW2Clnt, fromGW2CAN, toGW, fromGW, MSGfromBridge
         };
         private TcpClient Client = null;
         Thread connectThread;
@@ -63,8 +64,14 @@ namespace CANguruX
         private static System.Timers.Timer gettingConnectionTimer;
         Int16 elapsedmillis4Connection;
         //
+        private static System.Timers.Timer trying2Connct2BridgeTimer;
+        //
+        //
         private static System.Timers.Timer showResetValuesTimer;
         Int16 elapsedmillis4showResetValues;
+        //
+        private static System.Timers.Timer timeTimer;
+        DateTime startTime;        //
         // gleisbild
         int cntGleisbild = 0;
         //
@@ -237,6 +244,25 @@ namespace CANguruX
                     ConfigStream.setnextLocid(ConfigStream.getMinLocID());
                 }
                 //
+                // Create a timer with a one second interval.
+                // the timer updates the time in the form
+                timeTimer = new System.Timers.Timer(1000);
+                // Hook up the Elapsed event for the timer. 
+                timeTimer.Elapsed += UpdateTheTime;
+                timeTimer.AutoReset = true;
+                timeTimer.Enabled = true;
+                // and start the timer
+                timeTimer.Start();
+                startTime = DateTime.Now;
+                // Create a timer with a ten second interval.
+                // the timer tries to connct to the CANguruBridge
+                trying2Connct2BridgeTimer = new System.Timers.Timer(5000);
+                // Hook up the Elapsed event for the timer. 
+                trying2Connct2BridgeTimer.Elapsed += trying2Connct2Bridge;
+                trying2Connct2BridgeTimer.AutoReset = true;
+                trying2Connct2BridgeTimer.Enabled = true;
+                // and start the timer
+                trying2Connct2BridgeTimer.Start();
                 this.Load += Form1_Load;
             }
             catch (Exception e)
@@ -275,43 +301,43 @@ namespace CANguruX
 
         private void Form1_Load(object sender, System.EventArgs e)
         {
-            byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            byte[] MFX_COUNTER = { 0x00, 0x00, 0x03, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00 };
-            // Set the Minimum, Maximum, and initial Value.
-            numCounter.Value = ConfigStream.getCounter();
-            numCounter.Maximum = ConfigStream.getMaxCounter();
-            numCounter.Minimum = ConfigStream.getMinCounter();
-            //
-            for (byte uid = 0; uid < 4; uid++)
-            {
-                MFX_COUNTER[5 + uid] = GFP_UID[uid];
-            }
-            MFX_COUNTER[11] = ConfigStream.getCounter();
-            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-            CANClient.Send(MFX_COUNTER, Cnames.lngFrame);
-            // Set the Minimum, Maximum, and initial Value.
-            numLocID.Value = ConfigStream.getnextLocid();
-            numLocID.Maximum = ConfigStream.getMaxLocID();
-            numLocID.Minimum = ConfigStream.getMinLocID();
-            // an die Bridge melden
-            MFX_LOCID[5] = ConfigStream.getnextLocid();
-            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-            CANClient.Send(MFX_LOCID, Cnames.lngFrame);
-            //
-            // Set the Minimum, Maximum, and initial Value.
-            numUpDnDecNumber.Maximum = 255;
-            numUpDnDecNumber.Minimum = 1;
-            numUpDnDecNumber.Value = 1;
-            //
-            // Set the Minimum, Maximum, and initial Value.
-            numUpDnDelay.Maximum = 15;
-            numUpDnDelay.Minimum = 1;
-            numUpDnDelay.Value = 10;
-            //
-            // CAN
-            threadCAN = new Thread(new ThreadStart(fromCAN2UDP));
-            threadCAN.IsBackground = true;
-            threadCAN.Start();
+                byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                byte[] MFX_COUNTER = { 0x00, 0x00, 0x03, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00 };
+                // Set the Minimum, Maximum, and initial Value.
+                numCounter.Value = ConfigStream.getCounter();
+                numCounter.Maximum = ConfigStream.getMaxCounter();
+                numCounter.Minimum = ConfigStream.getMinCounter();
+                //
+                for (byte uid = 0; uid < 4; uid++)
+                {
+                    MFX_COUNTER[5 + uid] = GFP_UID[uid];
+                }
+                MFX_COUNTER[11] = ConfigStream.getCounter();
+                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                CANClient.Send(MFX_COUNTER, Cnames.lngFrame);
+                // Set the Minimum, Maximum, and initial Value.
+                numLocID.Value = ConfigStream.getnextLocid();
+                numLocID.Maximum = ConfigStream.getMaxLocID();
+                numLocID.Minimum = ConfigStream.getMinLocID();
+                // an die Bridge melden
+                MFX_LOCID[5] = ConfigStream.getnextLocid();
+                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                CANClient.Send(MFX_LOCID, Cnames.lngFrame);
+                //
+                // Set the Minimum, Maximum, and initial Value.
+                numUpDnDecNumber.Maximum = 255;
+                numUpDnDecNumber.Minimum = 1;
+                numUpDnDecNumber.Value = 1;
+                //
+                // Set the Minimum, Maximum, and initial Value.
+                numUpDnDelay.Maximum = 15;
+                numUpDnDelay.Minimum = 1;
+                numUpDnDelay.Value = 10;
+                //
+                // CAN
+                threadCAN = new Thread(new ThreadStart(fromCAN2UDP));
+                threadCAN.IsBackground = true;
+                threadCAN.Start();
         }
 
         int getIndicatorValue(byte pos)
@@ -475,49 +501,238 @@ namespace CANguruX
             else
                 readValueBlock(ref CgArrIndex);
         }
+
+        static String getDirectionText(CMD cmd)
+        {
+            // toCAN, toClnt, toUDP, toTCP, fromCAN, fromClnt, fromUDP, fromTCP, 
+            // fromUDP2CAN, fromTCP2CAN, fromTCP2Clnt, fromCAN2UDP, fromCAN2TCP, fromGW2Clnt, fromGW2CAN,
+            // toGW, fromGW
+            String[] source_dest = {
+            // 00  toCAN
+                "    >CAN> 0x",
+            //   toClnt
+                "    >Clnt>0x",
+            //   toUDP
+                "    >UDP> 0x",
+            //   toTCP
+                "    >TCP> 0x",
+            //   fromCAN
+                ">CAN>     0x",
+            // 05  fromClnt
+                ">Clnt>    0x",
+            //   fromUDP
+                ">UDP>     0x",
+            //   fromTCP
+                ">TCP>     0x",
+            //   fromUDP2CAN
+                ">UDP>CAN> 0x",
+            //   fromTCP2CAN
+                ">TCP>CAN> 0x",
+            // 10  fromTCP2Clnt
+                ">TCP>Clnt>0x",
+            //   fromCAN2UDP
+                ">CAN>UDP> 0x",
+            //   fromCAN2TCP
+                ">CAN>TCP> 0x",
+            //   fromGW2Clnt
+                ">GW>Clnt> 0x",
+            //   fromGW2CAN
+                ">GW>CAN > 0x",
+            // 15  toGW
+                "    >G_W> 0x",
+            // 16  fromGW
+                ">G_W>     0x"
+            };
+            return source_dest[(int)cmd];
+        }
+
+        static string MSGFromTheBridge(byte msg)
+        {
+            String[] messages = {
+            /*00*/    "received CAN ping",
+            /*01*/    "CAN magic 60113 start",
+            /*02*/    "CAN enabled all loco protos",
+            /*03*/    "Start Train-Application",
+            /*04*/    " -- No Slaves!",
+            /*05*/    "replied CAN ping (fake member)",
+            /*06*/    "Meldeüunkt0",
+            /*07*/    "Meldeüunkt1",
+            /*08*/    "Meldeüunkt2"
+            };
+            return messages[msg];
+        }
+
         string doMsg4TctWindow(CMD src, byte[] content)
         {
-            byte[] msg = { 0x26, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            0x24, 0x30,
-            };
-            msg[0x01] = (byte)(0x30 + (byte)src);
-            byte index;
-            for (byte ch = 0; ch < content.Length; ch++)
+            String str;
+            byte[] contentTmp = new byte[content.Length];
+            content.CopyTo(contentTmp, 0);
+            byte currCMD = contentTmp[1];
+            if (src == CMD.MSGfromBridge)
             {
-                index = (byte)(2 * ch + 2);
-                if (content[ch] < 0x20)
+                str = MSGFromTheBridge(currCMD);
+                return str;
+            }
+            if (!verbose)
+            {
+                // keine Wiederholungen
+                // außer Geschwindigkeit
+                if (/*(lastCMD == 0x08) && (currCMD == 0x08) ||
+                    // außer Richtung
+                    (lastCMD == 0x0A) && (currCMD == 0x0A) ||*/
+                    // außer Rückmeldung
+                    (lastCMD == 0x23) && (currCMD == 0x23))
+                    lastCMD = 0x00;
+                bool repeat = lastCMD == currCMD;
+                lastCMD = currCMD;
+                if (repeat)
                 {
-                    msg[index] = (byte)'%';
-                    msg[index + 1] = (byte)(content[ch] + '0');
+                    return "";
                 }
-                else
+                // der Hashwert zur Unterscheidung aus der
+                // aktuellen Zeile Position 2 und 3
+                switch (currCMD)
                 {
-                    if (content[ch] >= 0x80)
-                    {
-                        msg[index] = (byte)'&';
-                        msg[index + 1] = (byte)(content[ch] - 0x80);
-                    }
-                    else
-                    {
-                        msg[index] = (byte)'$';
-                        msg[index + 1] = content[ch];
-                    }
+                    // Lok_Speed
+                    case 0x08:
+                        string speed16 = String.Format("{0:X02}{1:X02}", contentTmp[9], contentTmp[10]);
+                        uint numSpeed = uint.Parse(speed16, System.Globalization.NumberStyles.AllowHexSpecifier);
+                        byte[] intValsSpeed = BitConverter.GetBytes(numSpeed);
+                        int speed10 = BitConverter.ToInt32(intValsSpeed, 0);
+                        return "Neue Geschwindigkeit: " + String.Format("{0:d02}", speed10);
+                    // Lok_Direction
+                    case 0x0A:
+                        String direction = "Neue Richtung: ";
+                        switch (contentTmp[9])
+                        {
+                            case 0:
+                                direction += "bleibt";
+                                break;
+                            case 1:
+                                direction += "vorwärts";
+                                break;
+                            case 2:
+                                direction += "rückwärts";
+                                break;
+                            case 3:
+                                direction += "umschalten";
+                                break;
+                            default:
+                                direction += "bleibt";
+                                break;
+                        }
+                        return direction;
+                    case 0x0C:
+                        string func = " - " + String.Format("Funktion: {0:d02} - Wert: {1:d02}", contentTmp[9], contentTmp[10]);
+                        return "Lok Funktion" + func;
+                    // Gleisbesetztmelder / Kontaktstelle
+                    case 0x22:
+                        string contact16_22 = String.Format("{0:X02}", contentTmp[8]);
+                        uint numContact_22 = uint.Parse(contact16_22, System.Globalization.NumberStyles.AllowHexSpecifier);
+                        byte[] intValsContact = BitConverter.GetBytes(numContact_22);
+                        int contact10_22 = BitConverter.ToInt32(intValsContact, 0);
+                        return "Kontaktabfrage: " + String.Format("{0:d02}", contact10_22);
+                    case 0x23:
+                        string contact16_23 = String.Format("{0:X02}", contentTmp[8]);
+                        uint numContact_23 = uint.Parse(contact16_23, System.Globalization.NumberStyles.AllowHexSpecifier);
+                        byte[] intValsContact_23 = BitConverter.GetBytes(numContact_23);
+                        int contact10_23 = BitConverter.ToInt32(intValsContact_23, 0);
+                        string status = " - Status: ";
+                        if (contentTmp[10] == 1)
+                            status += "AN";
+                        else
+                            status += "AUS";
+                        return "Kontakt: " + String.Format("{0:d02}", contact10_23) + status;
+                    // die folgenden Meldungen werden kommentiert angezeigt
+                    case 0x30:
+                        string hash_30 = " - " + String.Format("{0:X02}{1:X02}", contentTmp[2], contentTmp[3]);
+                        return "PING angefragt" + hash_30;
+                    case 0x31:
+                        string hash_31 = " - " + String.Format("{0:X02}{1:X02}", contentTmp[2], contentTmp[3]);
+                        return "PING Rückmeldung" + hash_31;
+                    // ConfigDataCompressed_R
+                    case 0x41:
+                    // LoadCS2Data
+                    case 0x56:
+                        string res = "";
+                        byte[] databytes = new byte[8];
+                        for (byte j = 0; j < 8; j++)
+                            databytes[j] = contentTmp[5 + j];
+                        char[] datachars = Encoding.UTF8.GetChars(databytes);
+                        for (int i = 0; i < datachars.Length; i++)
+                        {
+                            if (datachars[i] < ' ' || datachars[i] > 'z')
+                                res += " ";
+                            else
+                                res += datachars[i];
+                        }
+                        return "Datei angefordert - " + res;
+                    // die folgenden Meldungen werden unterdrückt
+                    // System
+                    case 0x00:
+                    case 0x01:
+                    // Lok_Speed_R
+                    case 0x09:
+                    // Lok_Direction_R
+                    case 0x0B:
+                    // MAGIC
+                    case 0x36:
+                    // CONFIG_Status
+                    case 0x3A:
+                    case 0x3B:
+                    // DoCompress
+                    // LoadCS2Data Rückmeldung
+                    case 0x57:
+                    case 0x5A:
+                    // DoNotCompress
+                    case 0x5B:
+                    // send IP
+                    case 0x64:
+                    case 0x65:
+                    // first feedback: here i am
+                    case 0x66:
+                    case 0x89:
+                        return "";
                 }
             }
-            // From byte array to string
-            return System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length);
+            str = getDirectionText(src);
+            byte dlc = contentTmp[4];
+
+            str += String.Format("{0:X2}({1:X2}){2:X2}{3:X2}", contentTmp[0], currCMD, contentTmp[2], contentTmp[3]);
+            if ((currCMD & 0x01) == 0x01)
+                str += " R ";
+            else
+                str += "   ";
+            str += String.Format("[{0}]", contentTmp[4]);
+            for (byte i = 5; i < 5 + dlc; i++)
+            {
+                str += String.Format(" {0:X2}", contentTmp[i]);
+            }
+            if (dlc < 8)
+            {
+                str += String.Format("({0:X2}", contentTmp[(byte)((byte)5 + (byte)dlc)]);
+                for (byte i = (byte)((byte)6 + (byte)dlc); i < 13; i++)
+                {
+                    str += String.Format(" {0:X2}", contentTmp[i]);
+                }
+                str += ") ";
+            }
+            else
+                str += "  ";
+            byte[] bytes = new byte[8];
+            for (int i = 5; i < 13; i++)
+            {
+                bytes[i - 5] = contentTmp[i];
+            }
+            char[] chars = Encoding.UTF8.GetChars(bytes);
+            for (int i = 0; i < 8; i++)
+            {
+                if (chars[i] < ' ' || chars[i] > 'z')
+                    str += ".";
+                else
+                    str += chars[i];
+            }
+            return str;
         }
 
         private void fromCAN2UDP()
@@ -533,305 +748,303 @@ namespace CANguruX
                     byte[] content = CANServer.Receive(ref remoteIPEndPoint);
                     if (content.Length > 0)
                     {
-                        // Das Programm reagiert auf die Erkennung 
-                        switch (content[1])
+                        // In content[0] steht die Richtung
+                        CMD cmd = (CMD)content[0];
+                        // die Richtung entnehmen und content[0] wieder auf 0x00 setzen
+                        content[0] = 0x00;
+                        // wenn content[4] größer 8 oder cmd == MSGfromBridge ist, dann wird der content nur dargestellt, aber nicht bearbeitet
+                        if ((content[4] > 8) || (cmd == CMD.MSGfromBridge))
                         {
-                            case 0x0F: // ReadConfig_R:
-                                {
-                                    ConfigStream.getLokName(content[11]);
-                                    UpdateProgressMFXBar();
-                                }
-                                break;
-                            case 0x31: // Ping_R:
-                                if (receivePINGInfos == true && CANguruArrFilled < 20)
-                                {
-                                    // CANguru ?
-                                    if (content[12] == GFP)
+                            if (content[4] > 8)
+                                // content[4] war dafür um 0x0F erhöht, also wieder reduzieren
+                                content[4] -= 0x0F;
+                            ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd, content));
+                        }
+                        else
+                        {
+                            ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd, content));
+                            // Das Programm reagiert auf die Erkennung 
+                            switch (content[1])
+                            {
+                                case 0x0F: // ReadConfig_R:
                                     {
-                                        for (byte uid = 0; uid < 4; uid++)
-                                        {
-                                            GFP_UID[uid] = content[5 + uid];
-                                        }
+                                        ConfigStream.getLokName(content[11]);
+                                        UpdateProgressMFXBar();
                                     }
-                                    if (content[12] >= DEVTYPE_BASE && content[12] < DEVTYPE_LastCANguru)
+                                    break;
+                                case 0x31: // Ping_R:
+                                    if (receivePINGInfos == true && CANguruArrFilled < 20)
                                     {
-                                        bool alreadyKnown = false;
-                                        for (byte c = 0; c < CANguruArrFilled; c++)
+                                        // CANguru ?
+                                        if (content[12] == GFP)
                                         {
-                                            if (content[2] == CANguruPINGArr[c, 2] && content[3] == CANguruPINGArr[c, 3])
+                                            for (byte uid = 0; uid < 4; uid++)
                                             {
-                                                alreadyKnown = true;
-                                                break;
+                                                GFP_UID[uid] = content[5 + uid];
                                             }
                                         }
-                                        if (alreadyKnown == false)
+                                        if (content[12] >= DEVTYPE_BASE && content[12] < DEVTYPE_LastCANguru)
                                         {
-                                            // UID
-                                            for (byte i = 0; i < Cnames.lngFrame; i++)
-                                                CANguruPINGArr[CANguruArrFilled, i] = content[i];
-                                            // IP-Address auf null
-                                            for (byte i = 1; i < 5; i++)
-                                                CANguruPINGArr[CANguruArrFilled, Cnames.lngFrame + i] = 0x00;
-                                            CANguruArrFilled++;
-                                        }
-                                    }
-                                }
-                                break;
-                            case 0x3B: // Config
-                                       // die Zeilen der Pakete werden alle in das Array
-                                       // CANguruArr kopiert
-                                for (byte i = 0; i < Cnames.lngFrame; i++)
-                                    CANguruArr[CANguruArrLine, i] = content[i];
-                                CANguruArrLine++;
-                                // 0 ist die Gerätebeschreibung (Paket 0)
-                                // dieses Paket ist vollständig, wenn die
-                                // Länge der Zeile =6 beträgt
-                                if (content[0x04] == 6)
-                                {
-                                    if (CANguruArrIndex == 0)
-                                    {
-                                        ChangeMyText(this.TelnetComm, "Decoder angemeldet: " + read1ConfigChannel_DescriptionBlock(ref CANguruArrIndex, ref content));
-                                    }
-                                    if (CANguruArrIndex > 0)
-                                        read1ConfigChannel_ValueBlock(ref CANguruArrIndex);
-                                }
-                                break;
-                            case 0x50: // MfxProc:
-                                if (content[4] == 0x01)
-                                {
-                                    while (myQueue.lngQueue() > 0)
-                                    {
-                                        pattern = myQueue.eatQueue();
-                                        CANClient.Send(pattern, Cnames.lngFrame);
-                                    }
-                                }
-                                break;
-                            case 0x51: // MfxProc_R:
-                                if (content[5] == 0x01)
-                                {
-                                    // config stream startet
-                                    ConfigStream.startConfigStructmfx(content);
-                                }
-                                if (content[5] == 0x00)
-                                {
-                                    // config stream wird beend
-                                    ConfigStream.finishConfigStruct();
-                                    ConfigStream.incnextLocid();
-                                    this.numLocID.Invoke(new MethodInvoker(() => this.numLocID.Value = ConfigStream.getnextLocid()));
-                                    MFX_LOCID[5] = ConfigStream.getnextLocid();
-                                    ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromCAN, MFX_LOCID));
-                                    CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                    CANClient.Send(MFX_LOCID, Cnames.lngFrame);
-                                    this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
-                                }
-                                break;
-                            //#define LoadCS2Data 0x56
-                            case 0x56: // ConfigData: compressed & uncompressed
-                                if (content[4] == 0x08)
-                                {
-                                    bool ffound = false;
-                                    byte[] arrshortname = new byte[Cnames.shortnameLng2transfer]; // plus 1 Zeichen wg. /0 am Ende
-                                    Array.Copy(content, 5, arrshortname, 0, Cnames.shortnameLng2transfer);
-                                    string shortname = System.Text.Encoding.Default.GetString(arrshortname);
-                                    byte str = 0;
-                                    string fileName = "";
-                                    if (shortname.Contains("-"))
-                                    {
-                                        if (cntGleisbild > 0)
-                                        {
-                                            int page_number;
-                                            fileName = @"\gleisbilder/";
-                                            page_number = Convert.ToInt32(shortname.Substring(shortname.IndexOf("-") + 1), 10);
-                                            if (page_number <= cntGleisbild)
+                                            bool alreadyKnown = false;
+                                            for (byte c = 0; c < CANguruArrFilled; c++)
                                             {
-                                                if (ConfigStream.page_name[page_number].Length > 0)
+                                                if (content[2] == CANguruPINGArr[c, 2] && content[3] == CANguruPINGArr[c, 3])
                                                 {
-                                                    fileName += ConfigStream.page_name[page_number] + ".cs2";
-                                                    ffound = true;
+                                                    alreadyKnown = true;
+                                                    break;
                                                 }
                                             }
+                                            if (alreadyKnown == false)
+                                            {
+                                                // UID
+                                                for (byte i = 0; i < Cnames.lngFrame; i++)
+                                                    CANguruPINGArr[CANguruArrFilled, i] = content[i];
+                                                // IP-Address auf null
+                                                for (byte i = 1; i < 5; i++)
+                                                    CANguruPINGArr[CANguruArrFilled, Cnames.lngFrame + i] = 0x00;
+                                                CANguruArrFilled++;
+                                            }
                                         }
                                     }
-                                    if (!ffound)
+                                    break;
+                                case 0x3B: // Config 
+                                           // die Zeilen der Pakete werden alle in das Array
+                                           // CANguruArr kopiert
+                                    for (byte i = 0; i < Cnames.lngFrame; i++)
+                                        CANguruArr[CANguruArrLine, i] = content[i];
+                                    CANguruArrLine++;
+                                    // 0 ist die Gerätebeschreibung (Paket 0)
+                                    // dieses Paket ist vollständig, wenn die
+                                    // Länge der Zeile =6 beträgt
+                                    if (content[0x04] == 6)
                                     {
-                                        if (shortname.Contains("+"))
+                                        if (CANguruArrIndex == 0)
+                                            ChangeMyText(this.TelnetComm, "Decoder angemeldet: " + read1ConfigChannel_DescriptionBlock(ref CANguruArrIndex, ref content));
+                                        //read1ConfigChannel_DescriptionBlock(ref CANguruArrIndex, ref content);
+                                        if (CANguruArrIndex > 0)
+                                            read1ConfigChannel_ValueBlock(ref CANguruArrIndex);
+                                    }
+                                    break;
+                                case 0x50: // MfxProc:
+                                    if (content[4] == 0x01)
+                                    {
+                                        while (myQueue.lngQueue() > 0)
+                                        {
+                                            pattern = myQueue.eatQueue();
+                                            CANClient.Send(pattern, Cnames.lngFrame);
+                                        }
+                                    }
+                                    break;
+                                case 0x51: // MfxProc_R:
+                                    if (content[5] == 0x01)
+                                    {
+                                        this.mfxProgress.Invoke(new MethodInvoker(() => this.mfxProgress.Text = "Lese MFX-Lok aus"));
+                                        // config stream startet
+                                        ConfigStream.startConfigStructmfx(content);
+                                    }
+                                    if (content[5] == 0x00)
+                                    {
+                                        // config stream wird beend
+                                        ConfigStream.finishConfigStruct();
+                                        ConfigStream.incnextLocid();
+                                        this.numLocID.Invoke(new MethodInvoker(() => this.numLocID.Value = ConfigStream.getnextLocid()));
+                                        MFX_LOCID[5] = ConfigStream.getnextLocid();
+                                        ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd /*CMD.fromCAN*/, MFX_LOCID));
+                                        CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                        CANClient.Send(MFX_LOCID, Cnames.lngFrame);
+                                        this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
+                                        this.mfxProgress.Invoke(new MethodInvoker(() => this.mfxProgress.Text = "Fertig!"));
+                                    }
+                                    break;
+                                //#define LoadCS2Data 0x56
+                                case 0x56: // ConfigData: compressed & uncompressed
+                                    if (content[4] == 0x08)
+                                    {
+                                        bool ffound = false;
+                                        byte[] arrshortname = new byte[Cnames.shortnameLng2transfer]; // plus 1 Zeichen wg. /0 am Ende
+                                        Array.Copy(content, 5, arrshortname, 0, Cnames.shortnameLng2transfer);
+                                        string shortname = System.Text.Encoding.Default.GetString(arrshortname);
+                                        byte str = 0;
+                                        string fileName = "";
+                                        if (shortname.Contains("-"))
                                         {
                                             if (cntGleisbild > 0)
                                             {
                                                 int page_number;
-                                                page_number = Convert.ToInt32(shortname.Substring(shortname.IndexOf("+") + 1), 10);
+                                                fileName = @"\gleisbilder/";
+                                                page_number = Convert.ToInt32(shortname.Substring(shortname.IndexOf("-") + 1), 10);
                                                 if (page_number <= cntGleisbild)
                                                 {
                                                     if (ConfigStream.page_name[page_number].Length > 0)
                                                     {
-                                                        fileName = ConfigStream.page_name[page_number] + ".cs2";
-                                                        byte[] arrayFN = Encoding.ASCII.GetBytes(fileName);
-                                                        CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                                        CANClient.Send(arrayFN, fileName.Length);
+                                                        fileName += ConfigStream.page_name[page_number] + ".cs2";
+                                                        ffound = true;
                                                     }
+                                                }
+                                            }
+                                        }
+                                        if (!ffound)
+                                        {
+                                            if (shortname.Contains("+"))
+                                            {
+                                                if (cntGleisbild > 0)
+                                                {
+                                                    int page_number;
+                                                    page_number = Convert.ToInt32(shortname.Substring(shortname.IndexOf("+") + 1), 10);
+                                                    if (page_number <= cntGleisbild)
+                                                    {
+                                                        if (ConfigStream.page_name[page_number].Length > 0)
+                                                        {
+                                                            fileName = ConfigStream.page_name[page_number] + ".cs2";
+                                                            byte[] arrayFN = Encoding.ASCII.GetBytes(fileName);
+                                                            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                                            CANClient.Send(arrayFN, fileName.Length);
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (!ffound)
+                                        {
+                                            for (str = 0; str < Cnames.cntCS2Files; str++)
+                                            {
+                                                if (Cnames.cs2Files[str, 0].Contains(shortname))
+                                                {
+                                                    // Langname gefunden, gibt es die zugehörige Datei auch?
+                                                    fileName = Cnames.cs2Files[str, 1];
+                                                    ffound = File.Exists(string.Concat(Cnames.path, fileName));
                                                     break;
                                                 }
                                             }
                                         }
-                                    }
-                                    if (!ffound)
-                                    {
-                                        for (str = 0; str < Cnames.cntCS2Files; str++)
+                                        if (ffound == true)
                                         {
-                                            if (Cnames.cs2Files[str, 0].Contains(shortname))
+                                            ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd /*CMD.fromGW*/, content));
+                                            byte[] tmpbyte2 = new byte[2];
+                                            byte[] tmpbyte4 = new byte[4];
+                                            Int16 crc;
+                                            // Anzahl der Zeichen übermitteln
+                                            if (compress.bcompress)
                                             {
-                                                // Langname gefunden, gibt es die zugehörige Datei auch?
-                                                fileName = Cnames.cs2Files[str, 1];
-                                                ffound = File.Exists(string.Concat(Cnames.path, fileName));
-                                                break;
+                                                compress compress = new CANguruX.compress();
+                                                compress.compressTheData(string.Concat(Cnames.path, fileName));
+                                                int compressCnt = compress.getDeflatedSize();
+                                                if (compressCnt == 0)
+                                                {
+                                                    // byte 9 und 10 ist der crc-Wert
+                                                    // crc ist für uncompressed immer null
+                                                    Array.Copy(tmpbyte6, 0, GETCONFIG_RESPONSE, 5, 6);
+                                                    CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                                    //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
+                                                    CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
+                                                    ChangeMyText(this.TelnetComm, "Datei zu groß: " + fileName);
+                                                    break;
+                                                }
+                                                compressCnt += 4;
+                                                // auf runde 8 auffüllen
+                                                if (compressCnt % 8 != 0)
+                                                {
+                                                    compressCnt += 8 - (compressCnt % 8);
+                                                }
+                                                Array.Resize(ref compress.outBuffer, compressCnt);
+                                                tmpbyte4 = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(compress.getDeflatedSize() + 4));
+                                                // CRC erzeugen und eintragen
+                                                InitialCrcValue initVal = InitialCrcValue.NonZero1;
+                                                Crc16Ccitt Crc16Ccitt = new CANguruX.Crc16Ccitt(initVal);
+                                                crc = (Int16)Crc16Ccitt.ComputeChecksum(compress.outBuffer);
                                             }
-                                        }
-                                    }
-                                    if (ffound == true)
-                                    {
-                                        ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, content));
-                                        byte[] tmpbyte2 = new byte[2];
-                                        byte[] tmpbyte4 = new byte[4];
-                                        Int16 crc;
-                                        // Anzahl der Zeichen übermitteln
-                                        if (compress.bcompress)
-                                        {
-                                            compress compress = new CANguruX.compress();
-                                            compress.compressTheData(string.Concat(Cnames.path, fileName));
-                                            int compressCnt = compress.getDeflatedSize();
-                                            if (compressCnt == 0)
+                                            else
                                             {
-                                                // byte 9 und 10 ist der crc-Wert
-                                                // crc ist für uncompressed immer null
-                                                Array.Copy(tmpbyte6, 0, GETCONFIG_RESPONSE, 5, 6);
-                                                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                                //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
-                                                CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
-                                                ChangeMyText(this.TelnetComm, "Datei zu groß: " + fileName);
-                                                break;
+                                                /*    if (!emptyLokListIsGenerated)
+                                                    {
+                                                        ConfigStream.generateEmptyLokList();
+                                                        emptyLokListIsGenerated = true;
+                                                    }
+                                                */
+                                                ConfigStream.setbufferIndex(0);
+                                                ConfigStream.readLocomotive(Cnames.path, fileName);
+                                                tmpbyte4 = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(ConfigStream.getbufferIndex()));
+                                                crc = 0;
                                             }
-                                            compressCnt += 4;
-                                            // auf runde 8 auffüllen
-                                            if (compressCnt % 8 != 0)
-                                            {
-                                                compressCnt += 8 - (compressCnt % 8);
-                                            }
-                                            Array.Resize(ref compress.outBuffer, compressCnt);
-                                            tmpbyte4 = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(compress.getDeflatedSize() + 4));
-                                            // CRC erzeugen und eintragen
-                                            InitialCrcValue initVal = InitialCrcValue.NonZero1;
-                                            Crc16Ccitt Crc16Ccitt = new CANguruX.Crc16Ccitt(initVal);
-                                            crc = (Int16)Crc16Ccitt.ComputeChecksum(compress.outBuffer);
+                                            crc = IPAddress.HostToNetworkOrder(crc);
+                                            tmpbyte2 = BitConverter.GetBytes(crc);
+                                            // byte 5 bis 8 ist die Anzahl der zu übertragenden bytes
+                                            Array.Copy(tmpbyte4, 0, GETCONFIG_RESPONSE, 5, 4);
+                                            // byte 9 und 10 ist der crc-Wert
+                                            // crc ist für uncompressed immer null
+                                            Array.Copy(tmpbyte2, 0, GETCONFIG_RESPONSE, 9, 2);
+                                            //                                        ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, GETCONFIG_RESPONSE));
+                                            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                            //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
+                                            CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
                                         }
                                         else
                                         {
-                                            if (!emptyLokListIsGenerated)
-                                            {
-                                                ConfigStream.generateEmptyLokList();
-                                                emptyLokListIsGenerated = true;
-                                            }
-                                            ConfigStream.setbufferIndex(0);
-                                            ConfigStream.readLocomotive(Cnames.path, fileName);
-                                            tmpbyte4 = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(ConfigStream.getbufferIndex()));
-                                            crc = 0;
+                                            // byte 9 und 10 ist der crc-Wert
+                                            // crc ist für uncompressed immer null
+                                            Array.Copy(tmpbyte6, 0, GETCONFIG_RESPONSE, 5, 6);
+                                            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                            //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
+                                            CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
+                                            ChangeMyText(this.TelnetComm, "Datei nicht gefunden: " + fileName);
                                         }
-                                        crc = IPAddress.HostToNetworkOrder(crc);
-                                        tmpbyte2 = BitConverter.GetBytes(crc);
-                                        // byte 5 bis 8 ist die Anzahl der zu übertragenden bytes
-                                        Array.Copy(tmpbyte4, 0, GETCONFIG_RESPONSE, 5, 4);
-                                        // byte 9 und 10 ist der crc-Wert
-                                        // crc ist für uncompressed immer null
-                                        Array.Copy(tmpbyte2, 0, GETCONFIG_RESPONSE, 9, 2);
-                                        //                                        ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, GETCONFIG_RESPONSE));
-                                        CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                        //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
-                                        CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
                                     }
-                                    else
+                                    break;
+                                //#define LoadCS2Data_R LoadCS2Data + 0x01            // 0x57
+                                case 0x57: // ConfigData_R: compressed & uncompressed
+                                    if (content[4] == 0x08)
                                     {
-                                        // byte 9 und 10 ist der crc-Wert
-                                        // crc ist für uncompressed immer null
-                                        Array.Copy(tmpbyte6, 0, GETCONFIG_RESPONSE, 5, 6);
-                                        CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                        //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
-                                        CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
-                                        ChangeMyText(this.TelnetComm, "Datei nicht gefunden: " + fileName);
+                                        if (compress.bcompress)
+                                        {
+                                            compress.sendBufferCompressed(content, CANClient);
+                                        }
+                                        else
+                                        {
+                                            ConfigStream.sendBufferUncompressed(content, CANClient);
+                                        }
                                     }
-                                }
-                                break;
-                            //#define LoadCS2Data_R LoadCS2Data + 0x01            // 0x57
-                            case 0x57: // ConfigData_R: compressed & uncompressed
-                                if (content[4] == 0x08)
-                                {
-                                    if (compress.bcompress)
+                                    break;
+                                //#define DoCompress GETCONFIG_RESPONSE + 0x02        // 0x5A
+                                case 0x5A: // DoCompress
+                                    compress.bcompress = true;
+                                    break;
+                                //#define DoNotCompress DoCompress + 0x01             // 0x5B
+                                case 0x5B: // DoNotCompress
+                                    compress.bcompress = false;
+                                    break;
+                                case 0x65:
+                                    for (byte c = 0; c < CANguruArrFilled; c++)
                                     {
-                                        compress.sendBufferCompressed(content, CANClient);
+                                        // 00 65 UU UU 08 IP IP IP IP 00 00 00 00
+                                        if (content[2] == CANguruPINGArr[c, 2] && content[3] == CANguruPINGArr[c, 3])
+                                        {
+                                            // IP-Address auf null
+                                            for (byte i = 1; i < 5; i++)
+                                                CANguruPINGArr[c, Cnames.lngFrame + i] = content[4 + i];
+                                            break;
+                                        }
                                     }
-                                    else
-                                    {
-                                        ConfigStream.sendBufferUncompressed(content, CANClient);
-                                    }
-                                }
-                                break;
-                            //#define DoCompress GETCONFIG_RESPONSE + 0x02        // 0x5A
-                            case 0x5A: // DoCompress
-                                compress.bcompress = true;
-                                break;
-                            //#define DoNotCompress DoCompress + 0x01             // 0x5B
-                            case 0x5B: // DoNotCompress
-                                compress.bcompress = false;
-                                break;
-                            case 0x89:
-                                gettingConnectionTimer.Enabled = false;
-                                Cnames.IP_CAN = remoteIPEndPoint.Address.ToString();
-                                this.tbConnectAdr.Invoke(new MethodInvoker(() => this.tbConnectAdr.Text = Cnames.IP_CAN));
-                                connectThread = new Thread(this.connectServer);
-                                connectThread.Start();
-                                is_connected ^= true;
-                                this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Enabled = false));
-                                this.btnVolt.Invoke(new MethodInvoker(() => this.btnVolt.Enabled = true));
-                                this.MFX.Invoke(new MethodInvoker(() => this.MFX.Enabled = true));
-                                this.Configuration.Invoke(new MethodInvoker(() => this.Configuration.Enabled = true));
-                                this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
-                                Seta1milliTimer();
-                                break;
-                            case 0x65:
-                                for (byte c = 0; c < CANguruArrFilled; c++)
-                                {
-                                    // 00 65 UU UU 08 IP IP IP IP 00 00 00 00
-                                    if (content[2] == CANguruPINGArr[c, 2] && content[3] == CANguruPINGArr[c, 3])
-                                    {
-                                        // IP-Address auf null
-                                        for (byte i = 1; i < 5; i++)
-                                            CANguruPINGArr[c, Cnames.lngFrame + i] = content[4 + i];
-                                        break;
-                                    }
-                                }
-                                break;
+                                    break;
+                                case 0x89:
+                                    gettingConnectionTimer.Enabled = false;
+                                    trying2Connct2BridgeTimer.Enabled = false;
+                                    this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connected!"));
+                                    Cnames.IP_CAN = remoteIPEndPoint.Address.ToString();
+                                    this.tbConnectAdr.Invoke(new MethodInvoker(() => this.tbConnectAdr.Text = Cnames.IP_CAN));
+                                    connectThread = new Thread(this.connectServer);
+                                    connectThread.Start();
+                                    is_connected ^= true;
+                                    this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Enabled = false));
+                                    this.btnVolt.Invoke(new MethodInvoker(() => this.btnVolt.Enabled = true));
+                                    this.MFX.Invoke(new MethodInvoker(() => this.MFX.Enabled = true));
+                                    this.Configuration.Invoke(new MethodInvoker(() => this.Configuration.Enabled = true));
+                                    this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
+                                    Seta1milliTimer();
+                                    break;
+                            }
                         }
                     }
-                    // alle Rückmeldungen vom CAN oder Client
-                    /*                   byte cmd = content[0x01];
-                                       if (((cmd & 0x01) == 0x01) && (cmd != 0x89))
-                                           cmd = 0x00;
-                                       else
-                                           cmd = content[0x01];
-                                       switch (cmd)
-                                       {
-                                           case 0x00:
-                                               ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromCAN, content));
-                                               break;
-                                           case 0x41:
-                                           case 0x56:
-                                           case 0x57:
-                                           case 0x58:
-                                           case 0x89:
-                                               break;
-                                           default:
-                                               ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.toGW, content));
-                                               break;
-                                       }*/
-                    ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.toGW, content));
                 }
                 catch (Exception e)
                 {
@@ -850,6 +1063,21 @@ namespace CANguruX
             elapsedsec = 0;
             Seta1secTimer();
             setProgressMFXBar((int)(14));
+        }
+
+        private void UpdateTheTime(Object source, ElapsedEventArgs e)
+        {
+            // get time difference
+            TimeSpan timeDiff = DateTime.Now - startTime;
+            string diff = timeDiff.ToString("hh':'mm':'ss");
+
+            //get current time
+            string time = DateTime.Now.ToString("HH':'mm':'ss");
+
+            time += "\r\n"+diff;
+
+            //update label
+            this.timeBox.Invoke(new MethodInvoker(() => this.timeBox.Text = time));
         }
 
         private void After1sec(Object source, ElapsedEventArgs e)
@@ -887,7 +1115,7 @@ namespace CANguruX
 
         private void Seta1secTimer()
         {
-            // Create a timer with a two second interval.
+            // Create a timer with a one second interval.
             a1secTimer = new System.Timers.Timer(1000);
             // Hook up the Elapsed event for the timer. 
             a1secTimer.Elapsed += After1sec;
@@ -946,6 +1174,8 @@ namespace CANguruX
             if (result == DialogResult.Yes)
             {
                 // Aufräumen
+                trying2Connct2BridgeTimer.Enabled = false;
+                timeTimer.Enabled = false;
                 ini.RemoveAllSections();
                 ini.AddSection("IP-address").AddKey("IPCAN").Value = Cnames.IP_CAN;
                 ConfigStream.setCounter((byte)(numCounter.Value));
@@ -962,7 +1192,7 @@ namespace CANguruX
                 ini.Save(string.Concat(Cnames.path, Cnames.ininame));
                 voltStop();
                 restartTheBridge();
-                Environment.Exit(0x1);
+                this.Close();
             }
         }
 
@@ -980,89 +1210,9 @@ namespace CANguruX
             }
         }
 
-        static byte decodeChar(byte x, byte y)
-        {
-            byte cmd = 0;
-            switch (x)
-            {
-                case 0x24: // $
-                    cmd = y;
-                    break;
-                case 0x25: // %
-                    cmd = (byte)(y - 0x30);
-                    break;
-                case 0x26: // &
-                    cmd = (byte)(y + 0x80);
-                    break;
-            }
-
-            return cmd;
-        }
-
-        static string getDataText(string text)
-        {
-            string res = "";
-            byte[] ch = Encoding.ASCII.GetBytes(text);
-            byte[] bytes = new byte[8];
-            int j = 0;
-            for (int i = 12; i < 12 + 2 * 8; i = i + 2)
-            {
-                bytes[j] = decodeChar(ch[i], ch[i + 1]);
-                j++;
-            }
-            char[] chars = Encoding.UTF8.GetChars(bytes);
-            for (int i = 0; i < chars.Length; i++)
-            {
-                if (chars[i] < ' ' || chars[i] > 'z')
-                    res += " ";
-                else
-                    res += chars[i];
-            }
-            return res;
-        }
-
         public static void ChangeMyText(TextBox ctrl, string text)
         {
-            // toCAN, toClnt, toUDP, toTCP, fromCAN, fromClnt, fromUDP, fromTCP, 
-            // fromUDP2CAN, fromTCP2CAN, fromTCP2Clnt, fromCAN2UDP, fromCAN2TCP, fromGW2Clnt, fromGW2CAN,
-            // toGW, fromGW
-            String[] source_dest = {
-            //   toCAN
-                "    >CAN> 0x",
-            //   toClnt
-                "    >Clnt>0x",
-            //   toUDP
-                "    >UDP> 0x",
-            //   toTCP
-                "    >TCP> 0x",
-            //   fromCAN
-                ">CAN>     0x",
-            //   fromClnt
-                ">Clnt>    0x",
-            //   fromUDP
-                ">UDP>     0x",
-            //   fromTCP
-                ">TCP>     0x",
-            //   fromUDP2CAN
-                ">UDP>CAN> 0x",
-            //   fromTCP2CAN
-                ">TCP>CAN> 0x",
-            //   fromTCP2Clnt
-                ">TCP>Clnt>0x",
-            //   fromCAN2UDP
-                ">CAN>UDP> 0x",
-            //   fromCAN2TCP
-                ">CAN>TCP> 0x",
-            //   fromGW2Clnt
-                ">GW>Clnt> 0x",
-            //   fromGW2CAN
-                ">GW>CAN > 0x",
-            //   toGW
-                "    >G_W> 0x",
-            //   fromGW
-                ">G_W>     0x"
-            };
-            if (!is_connected)
+            if (!is_connected || (text == ""))
                 return;
             if (ctrl.InvokeRequired)
             {
@@ -1073,170 +1223,6 @@ namespace CANguruX
             {
                 if (text.Length > 1)
                 {
-                    if (text.StartsWith("&"))
-                    {
-                        byte[] ch = Encoding.ASCII.GetBytes(text);
-                        byte[] arr = new byte[13];
-                        if (ch.Length < 28)
-                        {
-                            for (int i = 0; i < 28; i++)
-                                text += "$?";
-                            ch = Encoding.ASCII.GetBytes(text);
-                        }
-                        byte currCMD = decodeChar(ch[4], ch[5]);
-                        // keine Wiederholungen
-                        // außer Geschwindigkeit
-                        if ((lastCMD == 0x08) && (currCMD == 0x08) ||
-                        // außer Rückmeldung
-                            (lastCMD == 0x23) && (currCMD == 0x23))
-                            lastCMD = 0x00;
-                        bool repeat = lastCMD == currCMD;
-                        lastCMD = currCMD;
-                        if (repeat)
-                        {
-                            return;
-                        }
-                        if (!verbose)
-                        {
-                            // data 0 - 12/13
-                            // data 1 - 14/15
-                            // data 2 - 16/17
-                            // data 3 - 18/19
-                            // data 4 - 20/21
-                            // data 5 - 22/23
-                            // data 6 - 24/25
-                            // data 7 - 26/27
-                            // der Hashwert zur Unterscheidung aus der
-                            // aktuellen Zeile Position 2 und 3
-                            string hash = " - " + String.Format("{0:X02}", decodeChar(ch[6], ch[7]));
-                            hash += String.Format("{0:X02}", decodeChar(ch[8], ch[9]));
-                            switch (currCMD)
-                            {
-                                // Lok_Speed
-                                case 0x08:
-                                    string speed16 = String.Format("{0:X02}", decodeChar(ch[20], ch[21]));
-                                    speed16 += String.Format("{0:X02}", decodeChar(ch[22], ch[23]));
-                                    uint numSpeed = uint.Parse(speed16, System.Globalization.NumberStyles.AllowHexSpecifier);
-                                    byte[] intValsSpeed = BitConverter.GetBytes(numSpeed);
-                                    int speed10 = BitConverter.ToInt32(intValsSpeed, 0);
-                                    ctrl.AppendText("Neue Geschwindigkeit: " + speed10);
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                // Lok_Direction
-                                case 0x0A:
-                                    ctrl.AppendText("Neue Richtung" + hash);
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                // Gleisbesetztmelder / Kontaktstelle
-                                case 0x23:
-                                    string contact16 = String.Format("{0:X02}", decodeChar(ch[18], ch[19]));
-                                    uint numContact = uint.Parse(contact16, System.Globalization.NumberStyles.AllowHexSpecifier);
-                                    byte[] intValsContact = BitConverter.GetBytes(numContact);
-                                    int contact10 = BitConverter.ToInt32(intValsContact, 0);
-                                    string status = " - Status: ";
-                                    if (decodeChar(ch[22], ch[23]) == 1)
-                                        status += "AN";
-                                    else
-                                        status += "AUS";
-                                    ctrl.AppendText("Kontakt / Gleis: " + contact10 + status);
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                // die folgenden Meldungen werden kommentiert angezeigt
-                                case 0x30:
-                                    ctrl.AppendText("PING angefragt" + hash);
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                case 0x31:
-                                    ctrl.AppendText("PING Rückmeldung" + hash);
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                // ConfigDataCompressed_R
-                                case 0x41:
-                                // LoadCS2Data
-                                case 0x56:
-                                    ctrl.AppendText("Datei angefordert - " + getDataText(text));
-                                    ctrl.AppendText(Environment.NewLine);
-                                    return;
-                                // die folgenden Meldungen werden unterdrückt
-                                // System
-                                case 0x00:
-                                case 0x01:
-                                // Lok_Speed_R
-                                case 0x09:
-                                // Lok_Direction_R
-                                case 0x0B:
-                                // MAGIC
-                                case 0x36:
-                                // CONFIG_Status
-                                case 0x3A:
-                                case 0x3B:
-                                // DoCompress
-                                // LoadCS2Data Rückmeldung
-                                case 0x57:
-                                case 0x5A:
-                                // DoNotCompress
-                                case 0x5B:
-                                // send IP
-                                case 0x64:
-                                case 0x65:
-                                // first feedback: here i am
-                                case 0x89:
-                                    return;
-                            }
-                        }
-                        text = source_dest[ch[1] - '0'];
-                        int chPtr;
-                        for (int c = 0; c < 13; c++)
-                        {
-                            chPtr = 2 * c + 2;
-                            switch (ch[chPtr])
-                            {
-                                case 0x24: // $
-                                    arr[c] = (byte)ch[chPtr + 1];
-                                    break;
-                                case 0x25: // %
-                                    arr[c] = (byte)(ch[chPtr + 1] - 0x30);
-                                    break;
-                                case 0x26: // &
-                                    arr[c] = (byte)(ch[chPtr + 1] + 0x80);
-                                    break;
-                            }
-                        }
-                        StringBuilder builder = new StringBuilder();
-                        // Merge all bytes into a string of bytes  
-                        builder.Append(arr[0].ToString("X2"));
-                        builder.Append("(");
-                        builder.Append(arr[1].ToString("X2"));
-                        builder.Append(")");
-                        for (int i = 2; i < 4; i++)
-                        {
-                            builder.Append(arr[i].ToString("X2"));
-                        }
-                        if ((arr[1] & 0x01) == 0x01)
-                            builder.Append(" R ");
-                        else
-                            builder.Append("   ");
-                        builder.Append("[");
-                        builder.Append(arr[4].ToString("X2"));
-                        builder.Append("]");
-                        byte[] bytes = new byte[8];
-                        for (int i = 5; i < arr.Length; i++)
-                        {
-                            builder.Append(" ");
-                            builder.Append(arr[i].ToString("X2"));
-                            bytes[i - 5] = arr[i];
-                        }
-                        builder.Append(" ");
-                        char[] chars = Encoding.UTF8.GetChars(bytes);
-                        for (int i = 0; i < chars.Length; i++)
-                        {
-                            if (chars[i] < ' ' || chars[i] > 'z')
-                                builder.Append(".");
-                            else
-                                builder.Append(chars[i]);
-                        }
-                        text += builder.ToString();
-                    }
                     if (text.StartsWith("!"))
                     {
                         text = text.Substring(1);
@@ -1356,6 +1342,15 @@ namespace CANguruX
             return true;
         }
 
+        private void trying2Connct2Bridge(Object source, ElapsedEventArgs e)
+        {
+            this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connecting ..."));
+            cntGleisbild = ConfigStream.read_track_file();
+            if (!checkFiles())
+                return;
+            SetgettingConnectionTimer();
+        }
+
         private void gettingConnection(Object source, ElapsedEventArgs e)
         {
             byte[] M_SEND_IP = { 0x00, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -1373,14 +1368,15 @@ namespace CANguruX
             if (elapsedmillis4Connection > 250)
             {
                 this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Enabled = true));
+                this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connect!"));
                 gettingConnectionTimer.Enabled = false;
             }
         }
 
         private void SetgettingConnectionTimer()
         {
-            // Create a timer with a 20 milli interval.
-            gettingConnectionTimer = new System.Timers.Timer(20);
+            // Create a timer with a 25 milli interval.
+            gettingConnectionTimer = new System.Timers.Timer(25);
             // Hook up the Elapsed event for the timer. 
             gettingConnectionTimer.Elapsed += gettingConnection;
             gettingConnectionTimer.AutoReset = true;
@@ -1673,7 +1669,7 @@ namespace CANguruX
             CANClient.Send(OTA_START, Cnames.lngFrame);
         }
 
-        private void ShowStdValues (Object source, ElapsedEventArgs e)
+        private void ShowStdValues(Object source, ElapsedEventArgs e)
         {
             elapsedmillis4showResetValues++;
             if (elapsedmillis4showResetValues > 25)

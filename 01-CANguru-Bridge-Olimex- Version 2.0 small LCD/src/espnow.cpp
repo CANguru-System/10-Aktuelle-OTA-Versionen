@@ -643,7 +643,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     switch (data[0x01])
     {
     case PING_R:
-      sendOutGW(Clntbuffer);
+      sendOutGW(Clntbuffer, fromClnt);
       for (uint8_t s = 0; s < slaveCnt; s++)
       {
         uint8_t m[macLen];
@@ -664,10 +664,10 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
       }
       break;
     case CONFIG_Status_R:
-      sendOutGW(Clntbuffer);
+      sendOutGW(Clntbuffer, fromClnt);
       break;
     case SEND_IP_R:
-      sendOutGW(Clntbuffer);
+      sendOutGW(Clntbuffer, fromClnt);
       if (!SYSseen)
       {
         cntConfig++;
@@ -678,7 +678,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     case S88_EVENT_R:
       // Meldungen vom Gleisbesetztmelder
       // an das Gateway
-      sendOutGW(Clntbuffer);
+      sendOutGW(Clntbuffer, fromClnt);
       // nur wenn Win-DigiPet gestartet ist
       if (SYSseen)
       {
@@ -693,7 +693,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
       break;
     default:
       // send received data via Ethernet to GW and evtl to SYS
-      sendOutGW(Clntbuffer);
+      sendOutGW(Clntbuffer, fromClnt);
       if (SYSseen)
       {
         sendOutUDP(Clntbuffer);

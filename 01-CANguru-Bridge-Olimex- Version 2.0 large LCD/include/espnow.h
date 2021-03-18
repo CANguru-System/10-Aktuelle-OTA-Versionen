@@ -88,29 +88,37 @@ enum patterns
 // Kommunikationslinien
 enum CMD
 {
-  toCAN,
+  /*00*/ toCAN,
   toClnt,
   toUDP,
   toTCP,
   fromCAN,
-  fromClnt,
+  /*05*/ fromClnt,
   fromUDP,
   fromTCP,
   fromUDP2CAN,
   fromTCP2CAN,
-  fromTCP2Clnt,
+  /*10*/ fromTCP2Clnt,
   fromCAN2UDP,
   fromCAN2TCP,
   fromGW2Clnt,
-  fromGW2CAN
+  /*14*/ fromGW2CAN,
+  toGW,
+  X0,
+  MSGfromBridge
 };
 
-enum outUDP
+enum msg
 {
-  GW,
-  UDP,
-  TCP,
-  Clnt
+  /*00*/ receivedCANping,
+  /*01*/ CANmagic60113start,
+  /*02*/ CANenabledalllocoprotos,
+  /*03*/ StartTrainApplication,
+  /*04*/ NoSlaves,
+  /*05*/ repliedCANpingfakemember,
+  /*06*/ Meldepunkt0,
+  /*07*/ Meldepunkt1,
+  /*08*/ Meldepunkt2
 };
 
 #ifdef OLED
@@ -145,7 +153,7 @@ void printUDPCAN(uint8_t *buffer, CMD dir);
 // Ausgaberoutine
 void sendOutUDP(uint8_t *buffer);
 void sendOutTCP(uint8_t *buffer);
-void sendOutGW(uint8_t *buffer);
+void sendOutGW(uint8_t *buffer, CMD cmd);
 // Anzeige, dass SYS gestartet werden kabb
 void goSYS();
 // gibt die Anzahl der gefundenen Slaves zurück

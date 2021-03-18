@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.beenden = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.Telnet = new System.Windows.Forms.TabPage();
@@ -35,10 +36,12 @@
             this.progressBarPing = new System.Windows.Forms.ProgressBar();
             this.TelnetComm = new System.Windows.Forms.TextBox();
             this.groupInput = new System.Windows.Forms.GroupBox();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.timeBox = new System.Windows.Forms.TextBox();
             this.tbConnectAdr = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
             this.groupAction = new System.Windows.Forms.GroupBox();
             this.buttonConnect = new System.Windows.Forms.Button();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.MFX = new System.Windows.Forms.TabPage();
             this.progressBarMfx = new System.Windows.Forms.ProgressBar();
             this.numLokAdress = new System.Windows.Forms.NumericUpDown();
@@ -53,6 +56,7 @@
             this.findLoks = new System.Windows.Forms.Button();
             this.lokBox = new System.Windows.Forms.ListBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.mfxProgress = new System.Windows.Forms.TextBox();
             this.numCounter = new System.Windows.Forms.NumericUpDown();
             this.mfxDiscovery = new System.Windows.Forms.Button();
             this.numLocID = new System.Windows.Forms.NumericUpDown();
@@ -60,6 +64,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.Configuration = new System.Windows.Forms.TabPage();
+            this.resetButton = new System.Windows.Forms.Button();
             this.deviceIP = new System.Windows.Forms.TextBox();
             this.otaBtn = new System.Windows.Forms.Button();
             this.CANElemente = new System.Windows.Forms.ListBox();
@@ -72,11 +77,11 @@
             this.btnGetData = new System.Windows.Forms.Button();
             this.btnSetData = new System.Windows.Forms.Button();
             this.btnVerbose = new System.Windows.Forms.Button();
-            this.resetButton = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.Telnet.SuspendLayout();
             this.groupCommand.SuspendLayout();
             this.groupInput.SuspendLayout();
+            this.groupBox5.SuspendLayout();
             this.groupAction.SuspendLayout();
             this.MFX.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numLokAdress)).BeginInit();
@@ -155,9 +160,10 @@
             // 
             // groupInput
             // 
+            this.groupInput.Controls.Add(this.groupBox5);
             this.groupInput.Controls.Add(this.tbConnectAdr);
-            this.groupInput.Controls.Add(this.label1);
             this.groupInput.Controls.Add(this.groupAction);
+            this.groupInput.Controls.Add(this.groupBox4);
             this.groupInput.Location = new System.Drawing.Point(8, 8);
             this.groupInput.Margin = new System.Windows.Forms.Padding(2);
             this.groupInput.Name = "groupInput";
@@ -167,47 +173,69 @@
             this.groupInput.TabStop = false;
             this.groupInput.Text = "Connect Information";
             // 
+            // groupBox5
+            // 
+            this.groupBox5.Controls.Add(this.timeBox);
+            this.groupBox5.Location = new System.Drawing.Point(151, 20);
+            this.groupBox5.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox5.Name = "groupBox5";
+            this.groupBox5.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox5.Size = new System.Drawing.Size(115, 57);
+            this.groupBox5.TabIndex = 7;
+            this.groupBox5.TabStop = false;
+            this.groupBox5.Text = "Time";
+            // 
+            // timeBox
+            // 
+            this.timeBox.Location = new System.Drawing.Point(8, 18);
+            this.timeBox.Multiline = true;
+            this.timeBox.Name = "timeBox";
+            this.timeBox.Size = new System.Drawing.Size(100, 34);
+            this.timeBox.TabIndex = 0;
+            this.timeBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
             // tbConnectAdr
             // 
-            this.tbConnectAdr.Location = new System.Drawing.Point(29, 47);
+            this.tbConnectAdr.Location = new System.Drawing.Point(25, 47);
             this.tbConnectAdr.Name = "tbConnectAdr";
             this.tbConnectAdr.ReadOnly = true;
             this.tbConnectAdr.Size = new System.Drawing.Size(100, 20);
             this.tbConnectAdr.TabIndex = 5;
             this.tbConnectAdr.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // label1
-            // 
-            this.label1.Location = new System.Drawing.Point(25, 17);
-            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(125, 19);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "CANguru-Bridge Address";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
             // groupAction
             // 
             this.groupAction.Controls.Add(this.buttonConnect);
-            this.groupAction.Location = new System.Drawing.Point(265, 20);
+            this.groupAction.Location = new System.Drawing.Point(273, 20);
             this.groupAction.Margin = new System.Windows.Forms.Padding(2);
             this.groupAction.Name = "groupAction";
             this.groupAction.Padding = new System.Windows.Forms.Padding(2);
-            this.groupAction.Size = new System.Drawing.Size(194, 57);
+            this.groupAction.Size = new System.Drawing.Size(186, 57);
             this.groupAction.TabIndex = 3;
             this.groupAction.TabStop = false;
             this.groupAction.Text = "Action";
             // 
             // buttonConnect
             // 
-            this.buttonConnect.Location = new System.Drawing.Point(18, 23);
+            this.buttonConnect.Location = new System.Drawing.Point(15, 23);
             this.buttonConnect.Margin = new System.Windows.Forms.Padding(2);
             this.buttonConnect.Name = "buttonConnect";
             this.buttonConnect.Size = new System.Drawing.Size(161, 25);
             this.buttonConnect.TabIndex = 0;
-            this.buttonConnect.Text = "Connect";
+            this.buttonConnect.Text = "Connect!";
             this.buttonConnect.UseVisualStyleBackColor = true;
             this.buttonConnect.Click += new System.EventHandler(this.onConnectClick);
+            // 
+            // groupBox4
+            // 
+            this.groupBox4.Location = new System.Drawing.Point(5, 20);
+            this.groupBox4.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox4.Size = new System.Drawing.Size(139, 57);
+            this.groupBox4.TabIndex = 6;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "CANguru-Bridge Address";
             // 
             // MFX
             // 
@@ -358,6 +386,7 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.mfxProgress);
             this.groupBox2.Controls.Add(this.numCounter);
             this.groupBox2.Controls.Add(this.mfxDiscovery);
             this.groupBox2.Controls.Add(this.numLocID);
@@ -369,6 +398,13 @@
             this.groupBox2.TabIndex = 36;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "MFX-Loks anmelden";
+            // 
+            // mfxProgress
+            // 
+            this.mfxProgress.Location = new System.Drawing.Point(194, 65);
+            this.mfxProgress.Name = "mfxProgress";
+            this.mfxProgress.Size = new System.Drawing.Size(100, 20);
+            this.mfxProgress.TabIndex = 23;
             // 
             // numCounter
             // 
@@ -435,6 +471,16 @@
             this.Configuration.TabIndex = 3;
             this.Configuration.Text = "Konfiguration";
             this.Configuration.UseVisualStyleBackColor = true;
+            // 
+            // resetButton
+            // 
+            this.resetButton.Location = new System.Drawing.Point(292, 69);
+            this.resetButton.Name = "resetButton";
+            this.resetButton.Size = new System.Drawing.Size(128, 23);
+            this.resetButton.TabIndex = 5;
+            this.resetButton.Text = "Reset Decoder";
+            this.resetButton.UseVisualStyleBackColor = true;
+            this.resetButton.Click += new System.EventHandler(this.resetButton_Click);
             // 
             // deviceIP
             // 
@@ -532,16 +578,6 @@
             this.btnVerbose.UseVisualStyleBackColor = true;
             this.btnVerbose.Click += new System.EventHandler(this.btnVerbose_Click);
             // 
-            // resetButton
-            // 
-            this.resetButton.Location = new System.Drawing.Point(292, 69);
-            this.resetButton.Name = "resetButton";
-            this.resetButton.Size = new System.Drawing.Size(128, 23);
-            this.resetButton.TabIndex = 5;
-            this.resetButton.Text = "Reset Decoder";
-            this.resetButton.UseVisualStyleBackColor = true;
-            this.resetButton.Click += new System.EventHandler(this.resetButton_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -551,14 +587,17 @@
             this.Controls.Add(this.btnVolt);
             this.Controls.Add(this.beenden);
             this.Controls.Add(this.tabControl1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "CANguru-Server 2.0 d";
+            this.Text = "CANguru-Server 2.11";
             this.tabControl1.ResumeLayout(false);
             this.Telnet.ResumeLayout(false);
             this.groupCommand.ResumeLayout(false);
             this.groupCommand.PerformLayout();
             this.groupInput.ResumeLayout(false);
             this.groupInput.PerformLayout();
+            this.groupBox5.ResumeLayout(false);
+            this.groupBox5.PerformLayout();
             this.groupAction.ResumeLayout(false);
             this.MFX.ResumeLayout(false);
             this.MFX.PerformLayout();
@@ -616,11 +655,14 @@
         private System.Windows.Forms.Button otaBtn;
         private System.Windows.Forms.TextBox deviceIP;
         private System.Windows.Forms.TextBox tbConnectAdr;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.Button btnVerbose;
         private System.Windows.Forms.Button resetButton;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.TextBox timeBox;
+        private System.Windows.Forms.TextBox mfxProgress;
     }
 }
 

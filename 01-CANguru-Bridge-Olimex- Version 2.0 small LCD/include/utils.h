@@ -95,6 +95,8 @@ WiFiUDP UdpINGW;
 
 WiFiClient TCPclient;
 
+IPAddress ipGateway;
+
 // Set web server port number to 80
 const unsigned int httpPort = 80;
 AsyncWebServer AsyncWebSrvr(httpPort);

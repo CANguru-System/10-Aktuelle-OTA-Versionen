@@ -22,13 +22,14 @@
 #include <ESPAsyncWebServer.h>
 //#include <miniz.h>
 #include "SPIFFS.h"
-#include "time.h"
 #ifdef OLED
 #include <Adafruit_SSD1306.h>
 #endif
 #ifdef LCD28
 #include "MOD-LCD.h"
 #endif
+
+//#define debug
 
 // buffer for receiving and sending data
 uint8_t M_PATTERN[] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -69,11 +70,7 @@ uint8_t cs2FileSizes[cntCS2Files + 1][cntCS2Sizes] = {
     {0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0}};
 
-const uint8_t timeOut = 20;
 const uint8_t indent = 10;
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 3600;
-const int daylightOffset_sec = 3600;
 
 canguruETHClient telnetClient;
 
@@ -89,130 +86,23 @@ void analyseTCP(uint8_t *buffer);
 void bindANDverify(uint8_t *buffer);
 char readConfig(char index);
 
-// überträgt die Daten eines CAN-Frames an den CANguru-Server, der diese
-// Daten dann aufbereitet und darstellt
-// da die Daten auf dem CANguru-Server als String empfangen werden, muss
-// gewisse Vorsorge für nicht darstellbare Zeichen getroffen werden. Sie wird
-// aus jedem Einzelzeichen ein Doppelzeichen; so wird jedem Zeichen ein Fluchtsymbol
-// vorangestellt, dass aussagt, inwiefern das eigentliche Zeichen manipuliert
-// wurde. Ziel ist, das jedes Zeichen wie ein darstellbares Zeichen aussieht.
-// Die Bedeutung der Fluchtsymbole
-// &: das erste übertragene Zeichen; es folgt die Info, für wen der Frame bestimmt ist
-// %: das Zeichen ist kleiner als ' '; eine '0' wird addiert;
-// &: das Zeichen ist größer als alle darstellbaren Zeichen; eine hex 80 wird subtrahiert
-// $: das Zeichen ist darstellabr, keine weitere Manipulation.
-// Auf dem CANguru-Server werden alle Manipulationen wieder rückgeführt, so dass
-// die Zeichen wieder im Originalzustand hergestellt sind
+
+void printMSG(uint8_t no)
+{
+  //%
+  uint8_t MSG[] = {0x00, no, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  sendOutGW(MSG, MSGfromBridge);
+}
+
 //
 void printCANFrame(uint8_t *buffer, CMD dir)
 {
-  /*
-CAN_FORMAT_STRG      = "      CAN->";
-UDP_FORMAT_STRG      = "->CAN>UDP   ";
-TCP_FORMAT_STRG      = "->TCP>CAN   ";
-TCP_FORMATS_STRG     = "->TCP>CAN*  ";
-CAN_TCP_FORMAT_STRG  = "->CAN>TCP   ";
-UDP_TCP_FORMAT_STRG  = "->UDP>TCP   ";
-UDP_UDP_FORMAT_STRG  = "->UDP>UDP   ";
-NET_UDP_FORMAT_STRG  = "      UDP-> ";
-NET_TCP_FORMAT_STRG  = "      TCP-> ";
-  */
-  char dirCh = dir + '0';
-  uint8_t tmpBuffer[] = {'&', dirCh,
-                         /*00 - 02, 03*/ 0x00, 0x00,
-                         /*01 - 04, 05*/ 0x00, 0x00, // CMD
-                         /*02 - 06, 07*/ 0x00, 0x00, // hash0
-                         /*03 - 08, 09*/ 0x00, 0x00, // hash1
-                         /*04 - 10, 11*/ 0x00, 0x00, // Länge
-                         /*05 - 12, 13*/ 0x00, 0x00, // Data0
-                         /*06 - 14, 15*/ 0x00, 0x00, // Data1
-                         /*07 - 16, 17*/ 0x00, 0x00, // Data2
-                         /*08 - 18, 19*/ 0x00, 0x00, // Data3
-                         /*09 - 20, 21*/ 0x00, 0x00, // Data4
-                         /*10 - 22, 23*/ 0x00, 0x00, // Data5
-                         /*11 - 24, 25*/ 0x00, 0x00, // Data6
-                         /*12 - 26, 27*/ 0x00, 0x00, // Data7
-                         /*13 - 28, 29*/ '\r', '\n'};
-  uint8_t index;
-  for (uint8_t ch = 0; ch < CAN_FRAME_SIZE; ch++)
-  {
-    index = 2 * ch + 2;
-    if (buffer[ch] < 0x20)
-    {
-      tmpBuffer[index] = '%';
-      tmpBuffer[index + 1] = buffer[ch] + '0';
-    }
-    else
-    {
-      if (buffer[ch] >= 0x80)
-      {
-        tmpBuffer[index] = '&';
-        tmpBuffer[index + 1] = buffer[ch] - 0x80;
-      }
-      else
-      {
-        tmpBuffer[index] = '$';
-        tmpBuffer[index + 1] = buffer[ch];
-      }
-    }
-  }
-  telnetClient.printTelnetArr(tmpBuffer);
-  delay(5);
-}
-
-void print_can_frame(uint8_t com, unsigned char *netframe)
-{
-/*  int i, dlc;
-  const uint8_t _UDP = 0x00;
-  const uint8_t _TCP = _UDP + 2;
-  const uint8_t _CAN = _TCP + 2;
-
-  uint8_t currCom = 0x08; //_TCP; //////////// <================
-
-  if ((com != currCom) && (com != (currCom + 1)))
-    return;
-  dlc = netframe[4];
-  switch (com)
-  {
-  case 0:
-    printf("UDP-IN : ");
-    break;
-  case 1:
-    printf("UDP-OUT: ");
-    break;
-  case 2:
-    printf("TCP-IN : ");
-    break;
-  case 3:
-    printf("TCP-OUT: ");
-    break;
-  case 4:
-    printf("CAN-IN : ");
-    break;
-  case 5:
-    printf("CAN-OUT: ");
-    break;
-  }
-
-  printf("0x%02X(%02X)%02X%02X - [%d]", netframe[0], netframe[1], netframe[2], netframe[3], netframe[4]);
-  for (i = 5; i < 5 + dlc; i++)
-  {
-    printf(" %02x", netframe[i]);
-  }
-  if (dlc < 8)
-  {
-    printf("(%02x", netframe[i]);
-    for (i = 6 + dlc; i < 13; i++)
-    {
-      printf(" %02x", netframe[i]);
-    }
-    printf(")");
-  }
-  else
-  {
-    printf(" ");
-  }
-  printf("\n");*/
+  // Diese Prozedur könnte mehrere Male aufgerufen werden;
+  // deshalb wird die Erhöhung begrenzt
+  if (buffer[Framelng]<=0x08) 
+    buffer[Framelng] += 0x0F;
+  sendOutGW(buffer, dir);
+  return;
 }
 
 // ein CAN-Frame wird erzeugt, der Parameter noFrame gibt an, welche Daten
@@ -383,11 +273,14 @@ void writeTCP(uint8_t *tcb, uint16_t strlng)
   }
 }
 
-void sendOutGW(uint8_t *buffer)
+void sendOutGW(uint8_t *buffer, CMD cmd)
 {
-  UdpOUTGW.beginPacket(UdpINGW.remoteIP(), localPortoutGW);
+  //%
+  buffer[0] = cmd;
+  UdpOUTGW.beginPacket(ipGateway, localPortoutGW);
   UdpOUTGW.write(buffer, CAN_FRAME_SIZE);
   UdpOUTGW.endPacket();
+  buffer[0] = 0x00;
 }
 
 // sendet einen CAN-Frame an den Teilnehmer und gibt ihn anschließend aus
@@ -395,7 +288,6 @@ void sendOutTCP(uint8_t *buffer)
 {
   writeTCP(buffer, CAN_FRAME_SIZE);
 //  printCANFrame(buffer, toTCP);
-  print_can_frame(3, buffer);
 }
 
 void sendOutTCPfromCAN(uint8_t *buffer)
@@ -407,20 +299,18 @@ void sendOutTCPfromCAN(uint8_t *buffer)
 
 void sendOutUDP(uint8_t *buffer)
 {
-  UdpOUTSYS.beginPacket(telnetClient.getipBroadcast(), localPortoutSYS);
+  UdpOUTSYS.beginPacket(ipGateway, localPortoutSYS);
   UdpOUTSYS.write(buffer, CAN_FRAME_SIZE);
   UdpOUTSYS.endPacket();
   printCANFrame(buffer, toUDP);
-  print_can_frame(1, buffer);
 }
 
 void sendOutUDPfromCAN(uint8_t *buffer)
 {
-  UdpOUTSYS.beginPacket(telnetClient.getipBroadcast(), localPortoutSYS);
+  UdpOUTSYS.beginPacket(ipGateway, localPortoutSYS);
   UdpOUTSYS.write(buffer, CAN_FRAME_SIZE);
   UdpOUTSYS.endPacket();
 //  printCANFrame(buffer, fromCAN2UDP);
-  print_can_frame(1, buffer);
 }
 
 void sendOutClnt(uint8_t *buffer, CMD dir)
@@ -468,7 +358,6 @@ void proc2CAN(uint8_t *buffer, CMD dir)
   //   byte 4      DLC
   //   byte 5 - 12 CAN data
   //
-  printCANFrame(buffer, dir);
   uint32_t canid;
   memcpy(&canid, buffer, 4);
   // CAN uses (network) big endian format
@@ -477,7 +366,7 @@ void proc2CAN(uint8_t *buffer, CMD dir)
   CAN.beginExtendedPacket(canid);
   CAN.write(&buffer[5], buffer[4]);
   CAN.endPacket();
-  print_can_frame(4, buffer);
+  printCANFrame(buffer, dir);
 }
 
 //////////////// Empfangsroutinen
@@ -511,12 +400,12 @@ void proc_fromGW2CANandClnt()
       // received next locid
       locid = UDPbuffer[0x05];
       produceFrame(M_SIGNAL);
-      sendOutGW(M_PATTERN);
+      sendOutGW(M_PATTERN, fromCAN);
       break;
     case MfxProc_R:
       // there is a new file lokomotive.cs2 to send
       produceFrame(M_SIGNAL);
-      sendOutGW(M_PATTERN);
+      sendOutGW(M_PATTERN, fromCAN);
       receiveLocFile(0, false);
       break;
     // PING
@@ -546,7 +435,6 @@ void proc_fromUDP2CAN()
     if (UDPbuffer[0x01] == SYS_CMD && UDPbuffer[0x09] == SYS_GO)
       set_SYSseen(true);
     proc2CAN(UDPbuffer, fromUDP2CAN);
-    print_can_frame(0, UDPbuffer);
     switch (UDPbuffer[0x01])
     {
     case PING:
@@ -669,19 +557,19 @@ void proc_fromCAN2SYSandGW()
       UDPbuffer[5 + i] = CAN.read();
       i++;
     }
-    // send UDP
-    print_can_frame(5, UDPbuffer);
+    // now dispatch
     switch (UDPbuffer[0x01])
     {
     case PING: // PING
-      sendOutGW(UDPbuffer);
+      sendOutGW(UDPbuffer, fromCAN);
       break;
     case PING_R: // PING
-      sendOutGW(UDPbuffer);
+      sendOutGW(UDPbuffer, fromCAN);
       sendOutUDPfromCAN(UDPbuffer);
       sendOutTCPfromCAN(UDPbuffer);
       if (UDPbuffer[12] == DEVTYPE_GB && get_slaveCnt() == 0 && get_waiting4Handshake() == true)
       {
+        printMSG(NoSlaves);
 #ifdef OLED
         Adafruit_SSD1306 *displ = getDisplay();
         displ->println(F(" -- No Slaves!"));
@@ -709,7 +597,7 @@ void proc_fromCAN2SYSandGW()
       // MFX-UID
       memcpy(&M_PATTERN[7], lastmfxUID, 4);
       // to Gateway
-      sendOutGW(M_PATTERN);
+      sendOutGW(M_PATTERN, fromCAN);
       cvIndex = readConfig(0);
       break;
     case 0x0F:
@@ -722,12 +610,12 @@ void proc_fromCAN2SYSandGW()
           // an gateway den schluss melden
           produceFrame(M_FINISHCONFIG);
           // to Gateway
-          sendOutGW(M_PATTERN);
+          sendOutGW(M_PATTERN, fromCAN);
         }
         else
         {
           // to Gateway
-          sendOutGW(UDPbuffer);
+          sendOutGW(UDPbuffer, fromCAN);
           cvIndex = readConfig(cvIndex);
         }
       }
@@ -751,7 +639,7 @@ String findGB(uint8_t gb)
     GBbufferOut[0x09] = 0x31;             // '1'
     GBbufferOut[0x0A] = 0x30 + (gb - 10); // '0' ff
   }
-  sendOutGW(GBbufferOut);
+  sendOutGW(GBbufferOut, toGW);
   char *GBbufferIn = NULL;
   uint8_t packetSize = 0;
   while (packetSize == 0)
@@ -869,7 +757,7 @@ void analyseHTTP()
   {
     set_SYSseen(true);
     produceFrame(M_DONOTCOMPRESS);
-    sendOutGW(M_PATTERN);
+    sendOutGW(M_PATTERN, toGW);
     receiveLocFile(fNmbr, false);
     String fName;
     if (fNmbr == cntCS2Files)
@@ -1004,8 +892,6 @@ void setup()
     Serial.println("An Error has occurred while formatting SPIFFS");
     return;
   }
-  // Init and get the time
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   //
   // Catch-All Handlers
   // Any request that can not find a Handler that canHandle it
@@ -1016,36 +902,6 @@ void setup()
   //
   // app starts here
   //
-}
-
-String printLocalTime(bool print)
-{
-  // Init and get the time
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    Serial.println("Failed to obtain time");
-    return "";
-  }
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  char datetime[40];
-
-  //Sun, 02 Aug 2020 18:33:53 GMT
-  /*
-  %A	Full weekday name
-  %B	Full month name
-  %d	Day of the month
-  %Y	Year
-  %H	Hour in 24h format
-  %I	Hour in 12h format
-  %M	Minute
-  %S	Second
-  */
-  strftime(datetime, 40, "%a, %d %b %Y %H:%M:%S GMT", &timeinfo);
-  String str(datetime);
-  if (print)
-    telnetClient.printTelnet(true, "date & time : " + str);
-  return str;
 }
 
 // damit wird die Gleisbox zum Leben erweckt
@@ -1114,7 +970,7 @@ uint32_t getDataSize(uint8_t f)
     // sonst
     memcpy(&M_PATTERN[0x05], &cs2Files[f][0], cs2Files[f][0].length()); //2transfer);
   // to Gateway
-  sendOutGW(M_PATTERN);
+  sendOutGW(M_PATTERN, toGW);
   uint16_t packetSize = 0;
 //  uint8_t loctimer = secs;
   // maximal 2 Sekunden warten
@@ -1163,7 +1019,7 @@ void ask4CS2Data(byte lineNo, uint8_t f)
   // Y - lineNo
   // XX - Pufferlänge
   // to Gateway
-  sendOutGW(M_PATTERN);
+  sendOutGW(M_PATTERN, toGW);
 }
 
 // Übertragung der lokomotive.cs2-Datei vom CANguru-Server
@@ -1258,9 +1114,9 @@ void proc_IP2GW()
     switch (UDPbuffer[0x1])
     {
     case CALL4CONNECT:
-      telnetClient.setipBroadcast(UdpINGW.remoteIP());
+      ipGateway = telnetClient.setipBroadcast(UdpINGW.remoteIP());
       UDPbuffer[0x1]++;
-      sendOutGW(UDPbuffer);
+      sendOutGW(UDPbuffer, toGW);
       break;
     }
   }
@@ -1307,7 +1163,6 @@ void sendTCPConfigData(uint8_t f, uint8_t *tcb)
   TCPbuffer[4] = 0x06;
   memcpy(&TCPbuffer[5], &cs2FileSizes[f][0], cntCS2Sizes);
   memcpy(&TCPbufferLng[CAN_FRAME_SIZE], &TCPbuffer[0], CAN_FRAME_SIZE);
-  print_can_frame(3, TCPbuffer);
   writeTCP(TCPbufferLng, 2 * CAN_FRAME_SIZE);
   // loop until all packets send
   // CAN DLC is always 8
@@ -1400,9 +1255,8 @@ void analyseTCP(uint8_t *buffer)
     }
     if (found)
     {
-      telnetClient.printTelnet(true, "Sendet per TCP: " + fileName);
       produceFrame(M_DOCOMPRESS);
-      sendOutGW(M_PATTERN);
+      sendOutGW(M_PATTERN, toGW);
       receiveLocFile(f, true);
       sendTCPConfigData(f, buffer);
     }
@@ -1466,8 +1320,7 @@ void startTelnetserver()
 // Meldung, dass SYS gestartet werden kann
 void goSYS()
 {
-  printLocalTime(true);
-  telnetClient.printTelnet(true, "Start Train-Application");
+  printMSG(StartTrainApplication);
   drawCircle = true;
 }
 
