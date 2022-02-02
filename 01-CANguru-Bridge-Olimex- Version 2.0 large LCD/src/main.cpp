@@ -8,12 +8,22 @@
  * ----------------------------------------------------------------------------
  */
 #include <Arduino.h>
+
+#include <driver/can.h>
+#include <driver/gpio.h>
+#include <esp_system.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+
 #include <ETH.h>
 #include "CANguruDefs.h"
 #include "display2use.h"
 #include <SPI.h>
 #include <Wire.h>
-#include "ESP32SJA1000.h"
 #include <espnow.h>
 #include <telnet.h>
 #include <Adafruit_GFX.h>
@@ -34,6 +44,14 @@
 // buffer for receiving and sending data
 uint8_t M_PATTERN[] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t lastmfxUID[] = {0x00, 0x00, 0x00, 0x00};
+
+uint8_t cntLoks;
+struct LokBufferType
+{
+  uint8_t lastmfxUID[4];
+  uint8_t adr;
+};
+LokBufferType *LokBuffer = NULL;
 
 const uint8_t maxPackets = 30;
 #define httpBufferLength 0x03FF
@@ -79,6 +97,7 @@ bool initialDataAlreadySent;
 
 byte locid;
 byte cvIndex;
+bool bLokDiscovery;
 
 // forward declaration
 void receiveLocFile(uint8_t f, bool cmprssd);
@@ -86,10 +105,87 @@ void analyseTCP(uint8_t *buffer);
 void bindANDverify(uint8_t *buffer);
 char readConfig(char index);
 
+// -------------------------------------------------------------------------------------------------
+
+#define portWAIT ( TickType_t ) 0x05
+
+void setup_can_driver()
+{
+  #ifdef debug
+  Serial.println("CAN Driver installation started...");
+  #endif
+  can_general_config_t general_config = {
+      .mode = CAN_MODE_NORMAL,
+      .tx_io = GPIO_NUM_5,
+      .rx_io = GPIO_NUM_35,
+      .clkout_io = (gpio_num_t)CAN_IO_UNUSED,
+      .bus_off_io = (gpio_num_t)CAN_IO_UNUSED,
+      .tx_queue_len = 5,
+      .rx_queue_len = 5,
+      .alerts_enabled = CAN_ALERT_NONE,
+      .clkout_divider = 0};
+  can_timing_config_t timing_config = CAN_TIMING_CONFIG_250KBITS();
+  can_filter_config_t filter_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
+  esp_err_t error;
+
+  error = can_driver_install(&general_config, &timing_config, &filter_config);
+  if (error != ESP_OK)
+  {
+    Serial.println("CAN Driver installation fail...");
+    return;
+  }
+  #ifdef debug
+  else
+  {
+    Serial.println("CAN Driver installation success...");
+  }
+#endif
+  // start CAN driver
+  error = can_start();
+#ifdef LCD28
+  if (error == ESP_OK)
+  {
+  #ifdef debug
+    Serial.println("CAN Driver start success...");
+    #endif
+    displayLCD("CAN is running!");
+  }
+  else
+  {
+  #ifdef debug
+    Serial.println("CAN Driver start FAILED...");
+    #endif
+    displayLCD("Starting CAN failed!");
+    while (1)
+      delay(10);
+  }
+#endif
+#ifdef OLED
+  if (error == ESP_OK)
+  {
+  #ifdef debug
+    Serial.println("CAN Driver start success...");
+    #endif
+    displ->println(F("Starting CAN was successful!"));
+    displ->display();
+  }
+  else
+  {
+  #ifdef debug
+    Serial.println("CAN Driver start FAILED...");
+    #endif
+    displ->println(F("Starting CAN failed!"));
+    displ->display();
+    while (1)
+      delay(10);
+  }
+#endif
+}
+
+// -------------------------------------------------------------------------------------------------
 
 void printMSG(uint8_t no)
 {
-  //%
   uint8_t MSG[] = {0x00, no, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   sendOutGW(MSG, MSGfromBridge);
 }
@@ -99,7 +195,7 @@ void printCANFrame(uint8_t *buffer, CMD dir)
 {
   // Diese Prozedur könnte mehrere Male aufgerufen werden;
   // deshalb wird die Erhöhung begrenzt
-  if (buffer[Framelng]<=0x08) 
+  if (buffer[Framelng] <= 0x08)
     buffer[Framelng] += 0x0F;
   sendOutGW(buffer, dir);
   return;
@@ -193,17 +289,17 @@ void produceFrame(patterns noFrame)
     M_PATTERN[10] = 0x44;
     break;
   case M_READCONFIG:
-    M_PATTERN[1] = 0x0E;
+    M_PATTERN[1] = ReadConfig;
     M_PATTERN[4] = 0x07;
     M_PATTERN[7] = 0x40;
     break;
   case M_STARTCONFIG:
-    M_PATTERN[1] = 0x51;
+    M_PATTERN[1] = MfxProc_R;
     M_PATTERN[4] = 0x02;
     M_PATTERN[5] = 0x01;
     break;
   case M_FINISHCONFIG:
-    M_PATTERN[1] = 0x51;
+    M_PATTERN[1] = MfxProc_R;
     M_PATTERN[4] = 0x01;
     M_PATTERN[5] = 0x00;
     break;
@@ -233,6 +329,13 @@ void produceFrame(patterns noFrame)
     break;
   case M_SIGNAL:
     M_PATTERN[1] = 0x50;
+    M_PATTERN[4] = 0x01;
+    break;
+  case M_CNTLOKBUFFER:
+    M_PATTERN[1] = sendCntLokBuffer;
+    break;
+  case M_SENDLOKBUFFER:
+    M_PATTERN[1] = sendLokBuffer;
     M_PATTERN[4] = 0x01;
     break;
   }
@@ -287,14 +390,14 @@ void sendOutGW(uint8_t *buffer, CMD cmd)
 void sendOutTCP(uint8_t *buffer)
 {
   writeTCP(buffer, CAN_FRAME_SIZE);
-//  printCANFrame(buffer, toTCP);
+  //  printCANFrame(buffer, toTCP);
 }
 
 void sendOutTCPfromCAN(uint8_t *buffer)
 {
   writeTCP(buffer, CAN_FRAME_SIZE);
-//  printCANFrame(buffer, fromCAN2TCP);
-//  print_can_frame(3, buffer);
+  //  printCANFrame(buffer, fromCAN2TCP);
+  //  print_can_frame(3, buffer);
 }
 
 void sendOutUDP(uint8_t *buffer)
@@ -310,7 +413,7 @@ void sendOutUDPfromCAN(uint8_t *buffer)
   UdpOUTSYS.beginPacket(ipGateway, localPortoutSYS);
   UdpOUTSYS.write(buffer, CAN_FRAME_SIZE);
   UdpOUTSYS.endPacket();
-//  printCANFrame(buffer, fromCAN2UDP);
+  //  printCANFrame(buffer, fromCAN2UDP);
 }
 
 void sendOutClnt(uint8_t *buffer, CMD dir)
@@ -346,26 +449,62 @@ void proc2Clnts(uint8_t *buffer, CMD dir)
 {
   // to Client
   if (get_slaveCnt() > 0)
+  {
     sendOutClnt(buffer, dir);
+  }
 }
 
 // sendet den CAN-Frame buffer über den CAN-Bus an die Gleisbox
 void proc2CAN(uint8_t *buffer, CMD dir)
 {
+  // can_message_t myMessageToSend = {1, 0x123, 8, {0x01, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x99}}; // geschraubt
+  //   can_message_t myMessageToSend = {1, 0x125, 8, {0x01, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x99}};  // frei
+  //   can_message_t Message2Send = {0, 0x00, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+  can_message_t Message2Send = {CAN_MSG_FLAG_EXTD | CAN_MSG_FLAG_SS, 0x0000, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
   // CAN uses (network) big endian format
   // Maerklin TCP/UDP Format: always 13 (CAN_FRAME_SIZE) bytes
   //   byte 0 - 3  CAN ID
   //   byte 4      DLC
   //   byte 5 - 12 CAN data
   //
-  uint32_t canid;
-  memcpy(&canid, buffer, 4);
-  // CAN uses (network) big endian format
-  canid = ntohl(canid);
+  /*
+typedef struct {
+    uint32_t flags;                 //< Bit field of message flags indicates frame/transmission type (see documentation)
+    uint32_t identifier;            //< 11 or 29 bit identifier
+    uint8_t data_length_code;       //< Data length code
+    uint8_t data[CAN_MAX_DATA_LEN]; //< Data bytes (not relevant in RTR frame)
+} can_message_t;
+  */
+  // flags
+  //  Message2Send.flags = CAN_MSG_FLAG_EXTD;
+  // identfier / CAN uses (network) big endian format
   // send extended packet: id is 29 bits, packet can contain up to 8 bytes of data
-  CAN.beginExtendedPacket(canid);
-  CAN.write(&buffer[5], buffer[4]);
-  CAN.endPacket();
+#ifdef debug
+  uint32_t previousMillis = millis();
+#endif
+  memcpy(&Message2Send.identifier, buffer, 4);
+  Message2Send.identifier = ntohl(Message2Send.identifier);
+  // Anzahl Datenbytes
+  Message2Send.data_length_code = buffer[4];
+  // Datenbytes
+  if (Message2Send.data_length_code > 0)
+    memcpy(&Message2Send.data, &buffer[5], Message2Send.data_length_code);
+  can_transmit(&Message2Send, portWAIT);
+#ifdef debug
+  Serial.print("o<-- ");
+  Serial.print(buffer[0], HEX);
+  Serial.print(buffer[1], HEX);
+  Serial.print(" ");
+  Serial.print(buffer[2], HEX);
+  Serial.print(buffer[3], HEX);
+  Serial.print(" (" + String(buffer[4]) + ") ");
+  for (size_t i = 0; i < 8; i++)
+  {
+    Serial.print(buffer[i + 5], HEX);
+    Serial.print("-");
+  }
+  Serial.println("T: " + String(millis() - previousMillis));
+#endif
   printCANFrame(buffer, dir);
 }
 
@@ -374,7 +513,8 @@ void proc2CAN(uint8_t *buffer, CMD dir)
 // Behandlung der Kommandos, die der CANguru-Server aussendet
 void proc_fromGW2CANandClnt()
 {
-  uint8_t UDPbuffer[CAN_FRAME_SIZE]; //buffer to hold incoming packet,
+  uint8_t Lokno;
+  uint8_t UDPbuffer[CAN_FRAME_SIZE]; // buffer to hold incoming packet,
   int packetSize = UdpINGW.parsePacket();
   // if there's data available, read a packet
   if (packetSize)
@@ -396,6 +536,10 @@ void proc_fromGW2CANandClnt()
     case CONFIG_Status:
       proc2Clnts(UDPbuffer, fromGW2Clnt);
       break;
+    case ReadConfig:
+    case WriteConfig:
+      proc2CAN(UDPbuffer, fromGW2CAN);
+      break;
     case MfxProc:
       // received next locid
       locid = UDPbuffer[0x05];
@@ -413,6 +557,46 @@ void proc_fromGW2CANandClnt()
       produceFrame(M_CAN_PING);
       proc2CAN(M_PATTERN, fromGW2CAN);
       break;
+    case sendCntLokBuffer_R:
+      cntLoks = 0;
+      cntLoks = UDPbuffer[0x05];
+      if (cntLoks > 0)
+      {
+        // erste Lok abrufen
+        // evtl. alte Zuweisung löschen
+        if (LokBuffer != NULL)
+        {
+          delete[] LokBuffer; // Free memory allocated for the buffer array.
+          LokBuffer = NULL;   // Be sure the deallocated memory isn't used.
+        }
+        // Speicher für alle Loks reservieren
+        if (LokBuffer == NULL)
+          LokBuffer = new LokBufferType[cntLoks]; // Allocate cntLoks LokBufferType and save ptr in buffer
+        produceFrame(M_SENDLOKBUFFER);
+        M_PATTERN[5] = 0;
+        sendOutGW(M_PATTERN, toGW);
+      }
+      break;
+    case sendLokBuffer_R:
+      Lokno = UDPbuffer[0x05];
+      if (LokBuffer != NULL)
+      {
+        //        saveFrame(UDPbuffer);
+        LokBuffer[Lokno].adr = UDPbuffer[0x06];
+        for (uint8_t b = 0; b < 4; b++)
+        {
+          LokBuffer[Lokno].lastmfxUID[b] = UDPbuffer[0x07 + b];
+        }
+        Lokno++;
+        if (cntLoks > Lokno)
+        {
+          // nächste Lok abrufen
+          produceFrame(M_SENDLOKBUFFER);
+          M_PATTERN[5] = Lokno;
+          sendOutGW(M_PATTERN, toGW);
+        }
+      }
+      break;
     case restartBridge:
       ESP.restart();
       break;
@@ -423,7 +607,7 @@ void proc_fromGW2CANandClnt()
 // sendet CAN-Frames vom SYS zum CAN (Gleisbox)
 void proc_fromUDP2CAN()
 {
-  uint8_t UDPbuffer[CAN_FRAME_SIZE]; //buffer to hold incoming packet
+  uint8_t UDPbuffer[CAN_FRAME_SIZE]; // buffer to hold incoming packet
   uint8_t M_PING_RESPONSEx[] = {0x00, 0x30, 0x00, 0x00, 0x00};
   int packetSize = UdpINSYS.parsePacket();
   // if there's data available, read a packet
@@ -462,9 +646,12 @@ void proc_fromUDP2CAN()
     case Lok_Speed:
     case Lok_Direction:
     case Lok_Function:
-    case SWITCH_ACC:
       // send received data via wifi to clients
       proc2Clnts(UDPbuffer, fromUDP2CAN);
+      break;
+    case SWITCH_ACC:
+      // send received data via wifi to clients
+      proc2Clnts(UDPbuffer, toClnt);
       break;
     case S88_Polling:
       UDPbuffer[0x01]++;
@@ -541,22 +728,34 @@ void proc_onTCP()
 void proc_fromCAN2SYSandGW()
 {
 #define CAN_EFF_MASK 0x1FFFFFFFU /* extended frame format (EFF) */
-  int packetSize = CAN.parsePacket();
-  if (packetSize)
+  can_message_t MessageReceived;
+#ifdef debug
+  uint32_t previousMillis = millis();
+#endif
+  if (can_receive(&MessageReceived, portWAIT) == ESP_OK)
   {
     // read a packet from CAN
-    uint8_t i = 0;
     uint8_t UDPbuffer[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    uint32_t canid = CAN.packetId();
-    canid &= CAN_EFF_MASK;
-    canid = htonl(canid);
-    memcpy(UDPbuffer, &canid, 4);
-    UDPbuffer[4] = packetSize;
-    while (CAN.available())
+    MessageReceived.identifier &= CAN_EFF_MASK;
+    MessageReceived.identifier = htonl(MessageReceived.identifier);
+    memcpy(UDPbuffer, &MessageReceived.identifier, 4);
+    UDPbuffer[4] = MessageReceived.data_length_code;
+    memcpy(&UDPbuffer[5], MessageReceived.data, MessageReceived.data_length_code);
+#ifdef debug
+    Serial.print("-->o ");
+    Serial.print(UDPbuffer[0], HEX);
+    Serial.print(UDPbuffer[1], HEX);
+    Serial.print(" ");
+    Serial.print(UDPbuffer[2], HEX);
+    Serial.print(UDPbuffer[3], HEX);
+    Serial.print(" (" + String(UDPbuffer[4]) + ") ");
+    for (size_t i = 0; i < 8; i++)
     {
-      UDPbuffer[5 + i] = CAN.read();
-      i++;
+      Serial.print(UDPbuffer[i + 5], HEX);
+      Serial.print("-");
     }
+    Serial.println("T: " + String(millis() - previousMillis));
+#endif
     // now dispatch
     switch (UDPbuffer[0x01])
     {
@@ -578,11 +777,11 @@ void proc_fromCAN2SYSandGW()
 #ifdef LCD28
         displayLCD(" -- No Slaves!");
 #endif
-        goSYS();      
+        goSYS();
         set_waiting4Handshake(false);
       }
       break;
-    case 0x03:
+    case LokDiscovery_R:
       // mfxdiscovery war erfolgreich
       if (UDPbuffer[4] == 0x05)
       {
@@ -590,7 +789,8 @@ void proc_fromCAN2SYSandGW()
         // an gateway den anfang melden
       }
       break;
-    case 0x07:
+    case MFXVerify:
+      bLokDiscovery = true;
       produceFrame(M_STARTCONFIG);
       // LocID
       M_PATTERN[6] = UDPbuffer[10];
@@ -600,14 +800,21 @@ void proc_fromCAN2SYSandGW()
       sendOutGW(M_PATTERN, fromCAN);
       cvIndex = readConfig(0);
       break;
-    case 0x0F:
+    case ReadConfig_R:
       // Rückmeldungen von config
-      if (UDPbuffer[10] == 0x03)
+      sendOutGW(UDPbuffer, fromCAN);
+      sendOutUDPfromCAN(UDPbuffer);
+      sendOutTCPfromCAN(UDPbuffer);
+      if ((UDPbuffer[10] == 0x03) && (bLokDiscovery == true))
       {
         if (UDPbuffer[11] == 0x00)
         {
           // das war das letzte Zeichen
           // an gateway den schluss melden
+          bLokDiscovery = false;
+          // verwendete locid, damit stellt der Server fest, ob
+          // die erkannte Lok neu oder bereits bekannt war
+          M_PATTERN[6] = locid;
           produceFrame(M_FINISHCONFIG);
           // to Gateway
           sendOutGW(M_PATTERN, fromCAN);
@@ -615,10 +822,30 @@ void proc_fromCAN2SYSandGW()
         else
         {
           // to Gateway
-          sendOutGW(UDPbuffer, fromCAN);
           cvIndex = readConfig(cvIndex);
         }
       }
+      break;
+    // Magnetartikel schalten
+    case SWITCH_ACC_R:
+      /*
+    Der Schaltbefehl vom Steuerungsprogramm wurde an die Decoder, aber auch
+    direkt an die Gleisbox gesendet. Also antwortet auch die Gleisbox und bestätigt
+    damit den Befehl, obwohl möglicherweise gar kein Decoder angeschlossen ist. Deshalb wird
+    mit diesem Konstrukt die Antwort der Gleisbox unterdrückt.
+    Die Bestätigungsmeldung kommt ausschließlich vom Decoder und wird unter espnow.cpp bearbeitet.
+
+    Wird momentan nicht umgesetzt, da ältere WinDigi-Pet-Versionen die Rückmeldung von der Gleisbox erwarten!
+    */
+      sendOutGW(UDPbuffer, fromCAN);
+      sendOutUDPfromCAN(UDPbuffer);
+      sendOutTCPfromCAN(UDPbuffer);
+
+      break;
+    case WriteConfig_R:
+      sendOutGW(UDPbuffer, fromCAN);
+      sendOutUDPfromCAN(UDPbuffer);
+      sendOutTCPfromCAN(UDPbuffer);
       break;
     default:
       sendOutUDPfromCAN(UDPbuffer);
@@ -756,6 +983,15 @@ void analyseHTTP()
   if (ffound)
   {
     set_SYSseen(true);
+    if (initialDataAlreadySent == false)
+    {
+      initialDataAlreadySent = true;
+      uint8_t no_slv = get_slaveCnt();
+      for (uint8_t slv = 0; slv < no_slv; slv++)
+      {
+        set_initialData2send(slv);
+      }
+    }
     produceFrame(M_DONOTCOMPRESS);
     sendOutGW(M_PATTERN, toGW);
     receiveLocFile(fNmbr, false);
@@ -773,7 +1009,7 @@ void analyseHTTP()
     request->send(SPIFFS, fName, "text/html");
     return;
   }
-  //Handle Unknown Request
+  // Handle Unknown Request
   request->send(404, "text/plain", "Not found: " + currentLine);
   telnetClient.printTelnet(true, "Not found: " + currentLine, indent);
 }
@@ -803,29 +1039,7 @@ void setup()
   // der Timer wird initialisiert
   stillAliveBlinkSetup();
   // start the CAN bus at 250 kbps
-  if (!CAN.begin(250E3))
-  {
-#ifdef OLED
-    displ->println(F("Starting CAN failed!"));
-    displ->display();
-    while (1)
-      delay(10);
-  }
-  else
-  {
-    displ->println(F("Starting CAN was successful!"));
-    displ->display();
-#endif
-#ifdef LCD28
-    displayLCD("Starting CAN failed!");
-    while (1)
-      delay(10);
-  }
-  else
-  {
-    displayLCD("CAN is running!");
-#endif
-  }
+  setup_can_driver();
   // ESPNow wird initialisiert
   espInit();
   // das gleiche mit ETHERNET
@@ -834,12 +1048,13 @@ void setup()
   // Variablen werden gesetzt
   set_SYSseen(false);
   set_cntConfig();
+  bLokDiscovery = false;
   locofileread = false;
   initialDataAlreadySent = false;
   locid = 1;
-  //start the telnetClient
+  // start the telnetClient
   telnetClient.telnetInit();
-  //This initializes udp and transfer buffer
+  // This initializes udp and transfer buffer
   if (UdpINSYS.begin(localPortinSYS) == 0)
   {
 #ifdef OLED
@@ -912,9 +1127,32 @@ void send_start_60113_frames()
   produceFrame(M_GLEISBOX_ALL_PROTO_ENABLE);
   proc2CAN(M_PATTERN, toCAN);
 }
+
+uint8_t getLocID()
+{
+  bool found = false;
+  // noch keine Lok registriert ?
+  if (cntLoks == 0)
+    return locid;
+  // vergleiche die erkannte mit allen bekannten Loks
+  for (uint8_t lok = 0; lok < cntLoks; lok++)
+  {
+    for (uint8_t b = 0; b < 4; b++)
+    {
+      found = LokBuffer[lok].lastmfxUID[b] == lastmfxUID[b];
+    }
+    // wenn schon bekannt, nimmt deren Adresse
+    if (found)
+    {
+      return LokBuffer[lok].adr;
+    }
+  }
+  return locid;
+}
 // wird für die Erkennung von mfx-Loks gebraucht
 void bindANDverify(uint8_t *buffer)
 {
+  locid = getLocID();
   // BIND
   produceFrame(M_BIND);
   M_PATTERN[10] = locid;
@@ -968,11 +1206,11 @@ uint32_t getDataSize(uint8_t f)
     memcpy(&M_PATTERN[0x05], gbsFile, 8);
   else
     // sonst
-    memcpy(&M_PATTERN[0x05], &cs2Files[f][0], cs2Files[f][0].length()); //2transfer);
+    memcpy(&M_PATTERN[0x05], &cs2Files[f][0], cs2Files[f][0].length()); // 2transfer);
   // to Gateway
   sendOutGW(M_PATTERN, toGW);
   uint16_t packetSize = 0;
-//  uint8_t loctimer = secs;
+  //  uint8_t loctimer = secs;
   // maximal 2 Sekunden warten
   while (packetSize == 0) // && secs < loctimer + 2)
   {
@@ -1100,7 +1338,7 @@ void receiveLocFile(uint8_t f, bool cmprssd)
 // damit eine Verbindung aufbauen
 void proc_IP2GW()
 {
-  uint8_t UDPbuffer[CAN_FRAME_SIZE]; //buffer to hold incoming packet,
+  uint8_t UDPbuffer[CAN_FRAME_SIZE]; // buffer to hold incoming packet,
   if (telnetClient.getIsipBroadcastSet())
     return;
   yield();
@@ -1324,12 +1562,22 @@ void goSYS()
   drawCircle = true;
 }
 
+void proc_start_lokBuffer()
+{
+  if (get_sendLokBuffer())
+  {
+    produceFrame(M_CNTLOKBUFFER);
+    sendOutGW(M_PATTERN, toGW);
+  }
+}
+
 // standard-Hauptprogramm
 void loop()
 {
   // die folgenden Routinen werden ständig aufgerufen
   stillAliveBlinking();
   espNowProc();
+
   proc_IP2GW();
   if (drawCircle)
     // diese nur, wenn drawRect wahr ist (nicht zu Beginn des Programmes)
@@ -1337,6 +1585,7 @@ void loop()
   if (getEthStatus() == true)
   {
     // diese nur nach Aufbau der ETHERNET-Verbindung
+    proc_start_lokBuffer();
     startTelnetserver();
     proc_PING();
     proc_fromCAN2SYSandGW();

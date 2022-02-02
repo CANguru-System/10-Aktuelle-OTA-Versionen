@@ -16,14 +16,7 @@ namespace CANguruX
         static byte[] mfxBuffer;
         static byte[] outBuffer = new byte[0x8000];
         static UInt16 bufferIndex = 0;
-        struct lokstruct
-        {
-            public int first, last;
-            public string lokname, sid, mfxuid;
-            public byte[] byteArrName, byteArrSid, byteArrMfxuid;
-            public int sidlng, mfxuidlng;
-            public bool ismfx;
-        }
+
         struct configstruct
         {
             public byte[] session;
@@ -33,7 +26,7 @@ namespace CANguruX
             public byte[] lokname;
             public byte nameIndex;
         }
-        configstruct[] lokconfig;
+        static configstruct[] lokconfig;
         byte Counter;
         byte nextLocid;
 
@@ -62,7 +55,7 @@ namespace CANguruX
         {
             bufferIndex = b;
         }
-
+        // Neuanmeldezähler
         public byte getMinCounter()
         {
             return minCounter;
@@ -71,16 +64,6 @@ namespace CANguruX
         public byte getMaxCounter()
         {
             return maxCounter;
-        }
-
-        public byte getMinLocID()
-        {
-            return minLocID;
-        }
-
-        public byte getMaxLocID()
-        {
-            return maxLocID;
         }
 
         public byte getCounter()
@@ -98,6 +81,16 @@ namespace CANguruX
             Counter++;
             if (Counter > maxCounter)
                 Counter = minCounter;
+        }
+        // Schienenadresse
+        public byte getMinLocID()
+        {
+            return minLocID;
+        }
+
+        public byte getMaxLocID()
+        {
+            return maxLocID;
         }
 
         public byte getnextLocid()
@@ -214,18 +207,19 @@ namespace CANguruX
         {
             byte[] pattern;
             int deleteMore = 0;
-            if (patternOffset<10)
+            if (patternOffset < 10)
             {
                 pattern = new byte[] { 0x4D, 0x4D, 0x4D, 0x4D };
                 for (byte o = 0; o < 4; o++)
                     pattern[o] += patternOffset;
             }
-            else {
+            else
+            {
                 switch (patternOffset)
                 {
                     case 10:
                         //                               .     s     i     d     =     0     x     R     R     R     R
-                            pattern = new byte[] { 0x20, 0x2E, 0x73, 0x69, 0x64, 0x3D, 0x30, 0x78, 0x52, 0x52, 0x52, 0x52 };
+                        pattern = new byte[] { 0x20, 0x2E, 0x73, 0x69, 0x64, 0x3D, 0x30, 0x78, 0x52, 0x52, 0x52, 0x52 };
                         deleteMore = 2;
                         break;
                     case 11:
@@ -250,7 +244,7 @@ namespace CANguruX
                         inBuffer = (byte[])RemoveAt(inBuffer, patternlist.Current, dist);
                     bufferIndex = (ushort)(inBuffer.Length);
                     // token einfügen
-                    if (lng>0)
+                    if (lng > 0)
                         Array.Copy(token, 0, inBuffer, patternlist.Current, lng);
                 }
             }
@@ -263,7 +257,7 @@ namespace CANguruX
             lokconfig[index].locid = new byte[2];
             lokconfig[index].typ = new byte[1];
             lokconfig[index].typ[0] = 0x00;
-            Array.Resize(ref lokconfig[index].lokname, 255);
+            Array.Resize(ref lokconfig[index].lokname, 0x10);
             lokconfig[index].mfxuid = new byte[8];
         }
 
@@ -291,6 +285,7 @@ namespace CANguruX
             return bytes;
         }
 
+        // wird nicht bei mfx verwendet
         public void fillConfigStruct(string name, byte adr, byte type)
         {
             lokconfig = new configstruct[1];
@@ -363,7 +358,7 @@ namespace CANguruX
         {
             // array von 0 .. cntConfig nach outbuffer und dann wegschreiben
             string tmp = string.Concat(Cnames.path, Cnames.tmpname);
-            using (BinaryWriter writer = new BinaryWriter(File.Open(tmp, FileMode.Create)))
+            using (BinaryWriter writer = new BinaryWriter(File.Open(tmp, FileMode.Create), System.Text.Encoding.ASCII))
             {
                 for (byte cntCfg = 0; cntCfg < cntConfig; cntCfg++)
                 {
@@ -380,6 +375,7 @@ namespace CANguruX
                     writer.Write(lokconfig[cntCfg].mfxuid, 0, lokconfig[cntCfg].mfxuid.Length);
                     writer.Write(names.separator(), 0, 1);
                 }
+                writer.Flush();
                 writer.Close();
             }
             string cfg = string.Concat(Cnames.path, Cnames.cfgname);
@@ -422,9 +418,9 @@ namespace CANguruX
             }
         }
 
-        public void finishConfigStruct()
+        public void finishConfigStruct(bool unknown)
         {
-            // 1 Lok ist die gerade gefundene
+            // 1 Lok ist die gerade gefunden
             byte cntConfig = 1;
             if (File.Exists(string.Concat(Cnames.path, Cnames.cfgname)))
             {
@@ -432,7 +428,8 @@ namespace CANguruX
             }
             writeConfigStruct(cntConfig);
             deleteDoubleEntry(cntConfig);
-            MessageBox.Show("Lok erfasst", "Lokomotiven", MessageBoxButtons.OK);
+            if (unknown)
+                MessageBox.Show("Lok erfasst", "Lokomotiven", MessageBoxButtons.OK);
         }
 
         char[] typName(byte typ)
@@ -559,7 +556,7 @@ namespace CANguruX
                 else // andere als mfx
                 {
                     // OOOO - .uid (locid  .uid=0x4006 /  .uid=0x40OOOO) insgesamt 4-stellig
-                    if(lokconfig[cntCfg].typ[0] == 0x03) //dcc
+                    if (lokconfig[cntCfg].typ[0] == 0x03) //dcc
                     {
                         byte[] dccLocid = { 0x43, 0x30, 0x30, 0x30, };
                         Array.Copy(lokconfig[cntCfg].locid, 0, dccLocid, 0x02, 0x02);
@@ -588,7 +585,8 @@ namespace CANguruX
                 last += bufferIndex;
             }
             string tmp = string.Concat(Cnames.path, Cnames.tmpname);
-            using (BinaryWriter writer = new BinaryWriter(File.Open(tmp, FileMode.Create)))
+            //            using (BinaryWriter writer = new BinaryWriter(File.Open(tmp, FileMode.Create)))
+            using (BinaryWriter writer = new BinaryWriter(File.Open(tmp, FileMode.Create), System.Text.Encoding.ASCII))
             {
                 writer.Write(outBuffer, 0, last);
                 writer.Flush();
@@ -610,6 +608,16 @@ namespace CANguruX
             MessageBox.Show("Lokliste angelegt", "Lokomotiven", MessageBoxButtons.OK);
         }
 
+        public static byte getLocid(int line, byte no)
+        {
+            return lokconfig[line].locid[no];
+        }
+
+        public static byte getMFXUID(int line, byte no)
+        {
+            return lokconfig[line].mfxuid[no];
+        }
+
         public void editConfigStruct(ListBox lb)
         {
             lb.Items.Clear();
@@ -627,12 +635,15 @@ namespace CANguruX
                 string item = name + " - " + locid + " - " + mfxuid;
                 lb.Items.Add(item);
             }
+            if (cntConfig>0)
+                lb.SetSelected(0, true);
         }
 
         public void getLokName(byte ch)
         {
             lokconfig[0].lokname[lokconfig[0].nameIndex] = ch;
-            lokconfig[0].nameIndex++;
+            if (ch != 0x00)
+                lokconfig[0].nameIndex++;
         }
 
         public void delConfigStruct(ListBox lb)
@@ -647,7 +658,7 @@ namespace CANguruX
                 int selIndex = lb.SelectedIndex;
                 //
                 if (selIndex == -1)
-                    MessageBox.Show("Bitte ein Element auswählen", "Fehler", MessageBoxButtons.OK);
+                    MessageBox.Show("Bitte eine Lok auswählen", "Fehler", MessageBoxButtons.OK);
                 else
                 {
                     byte cntConfig = (byte)lb.Items.Count;

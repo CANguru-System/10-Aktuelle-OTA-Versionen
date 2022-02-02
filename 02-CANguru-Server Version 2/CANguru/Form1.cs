@@ -51,6 +51,9 @@ namespace CANguruX
         public UdpClient CANClient;
         //
         bool Voltage;
+        bool oldVoltage;
+        bool listFile = false;
+        StreamWriter outputlistFile;
         CQueue myQueue;
         Cnames names;
         CConfigStream ConfigStream;
@@ -99,8 +102,10 @@ namespace CANguruX
         }
         structConfigControls configControls;
         byte CANguruArrFilled;
-        byte CANguruArrIndex;
-        byte CANguruArrWorked;
+        byte CANguruDescriptionNbr;
+        byte CANguruLFDescriptionNbr;
+        byte CANguruDecoderNbr;
+        byte CANguruLFDecoderNbr;
         byte CANguruArrLine;
         byte lastSelectedItem;
         byte[] GFP_UID = { 0x00, 0x00, 0x00, 0x00 };
@@ -114,13 +119,17 @@ namespace CANguruX
         const byte DEVTYPE_CANFUSE = 0x58;
         const byte DEVTYPE_LastCANguru = 0x5F;
         //
-        List<byte[]> WeichenList = new List<byte[]>();
-        //
         static bool is_connected;
-        bool emptyLokListIsGenerated;
 
         static bool verbose = true;
         static byte lastCMD = 0;
+
+        bool CV_change = false;
+        bool Lokname_change = false;
+        char[] arrLokName;
+        const byte maxLngLokName = 0x10;
+        int arrLokNameIndex;
+        byte LokCnt = 0;
 
         private void DisableTab_DrawItem(object sender, DrawItemEventArgs e)
         {
@@ -157,6 +166,10 @@ namespace CANguruX
             InitializeComponent();
             Voltage = false;
             btnVolt.Enabled = false;
+            listFile = false;
+            CV_change = false;
+            Lokname_change = false;
+            arrLokName = new char[maxLngLokName];
             // Enable first tab
             this.Telnet.Enabled = true; // no casting required.
             // Disable additional tabs
@@ -166,7 +179,6 @@ namespace CANguruX
             this.tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             this.tabControl1.DrawItem += new DrawItemEventHandler(DisableTab_DrawItem);
             is_connected = false;
-            emptyLokListIsGenerated = false;
             compress.bcompress = false;
             CANguruArr = new byte[Cnames.maxConfigLines, Cnames.lngFrame]; // [maxConfigLines+1][Cnames.lngFrame]
             CANguruPINGArr = new byte[Cnames.maxCANgurus, Cnames.lngFrame + 1 + 4]; // 4 für die IP-Adresse
@@ -222,15 +234,7 @@ namespace CANguruX
                         btnVerbose.Text = "Verbose";
                         verbose = false;
                     }
-                    if (Voltage)
-                    {
-                        btnVolt.Text = "Gleisspannung AUS";
-                    }
-                    else
-                    {
-                        btnVolt.Text = "Gleisspannung AUS";
-                        Voltage = false;
-                    }
+                    switchVoltage(Voltage);
                 }
                 else
                 {
@@ -301,43 +305,51 @@ namespace CANguruX
 
         private void Form1_Load(object sender, System.EventArgs e)
         {
-                byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-                byte[] MFX_COUNTER = { 0x00, 0x00, 0x03, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00 };
-                // Set the Minimum, Maximum, and initial Value.
-                numCounter.Value = ConfigStream.getCounter();
-                numCounter.Maximum = ConfigStream.getMaxCounter();
-                numCounter.Minimum = ConfigStream.getMinCounter();
-                //
-                for (byte uid = 0; uid < 4; uid++)
-                {
-                    MFX_COUNTER[5 + uid] = GFP_UID[uid];
-                }
-                MFX_COUNTER[11] = ConfigStream.getCounter();
-                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                CANClient.Send(MFX_COUNTER, Cnames.lngFrame);
-                // Set the Minimum, Maximum, and initial Value.
-                numLocID.Value = ConfigStream.getnextLocid();
-                numLocID.Maximum = ConfigStream.getMaxLocID();
-                numLocID.Minimum = ConfigStream.getMinLocID();
-                // an die Bridge melden
-                MFX_LOCID[5] = ConfigStream.getnextLocid();
-                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                CANClient.Send(MFX_LOCID, Cnames.lngFrame);
-                //
-                // Set the Minimum, Maximum, and initial Value.
-                numUpDnDecNumber.Maximum = 255;
-                numUpDnDecNumber.Minimum = 1;
-                numUpDnDecNumber.Value = 1;
-                //
-                // Set the Minimum, Maximum, and initial Value.
-                numUpDnDelay.Maximum = 15;
-                numUpDnDelay.Minimum = 1;
-                numUpDnDelay.Value = 10;
-                //
-                // CAN
-                threadCAN = new Thread(new ThreadStart(fromCAN2UDP));
-                threadCAN.IsBackground = true;
-                threadCAN.Start();
+            byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            byte[] MFX_COUNTER = { 0x00, 0x00, 0x03, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00 };
+            // Set the Minimum, Maximum, and initial Value.
+            CV.Value = 1;
+            CV.Maximum = 1024;
+            CV.Minimum = 1;
+            //
+            newCV.Value = 0;
+            newCV.Maximum = 255;
+            newCV.Minimum = 0;
+            //
+            numCounter.Value = ConfigStream.getCounter();
+            numCounter.Maximum = ConfigStream.getMaxCounter();
+            numCounter.Minimum = ConfigStream.getMinCounter();
+            //
+            for (byte uid = 0; uid < 4; uid++)
+            {
+                MFX_COUNTER[5 + uid] = GFP_UID[uid];
+            }
+            MFX_COUNTER[11] = ConfigStream.getCounter();
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(MFX_COUNTER, Cnames.lngFrame);
+            // Set the Minimum, Maximum, and initial Value.
+            numLocID.Value = ConfigStream.getnextLocid();
+            numLocID.Maximum = ConfigStream.getMaxLocID();
+            numLocID.Minimum = ConfigStream.getMinLocID();
+            // an die Bridge melden
+            MFX_LOCID[5] = ConfigStream.getnextLocid();
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(MFX_LOCID, Cnames.lngFrame);
+            //
+            // Set the Minimum, Maximum, and initial Value.
+            numUpDnDecNumber.Maximum = 255;
+            numUpDnDecNumber.Minimum = 1;
+            numUpDnDecNumber.Value = 1;
+            //
+            // Set the Minimum, Maximum, and initial Value.
+            numUpDnDelay.Maximum = 15;
+            numUpDnDelay.Minimum = 1;
+            numUpDnDelay.Value = 10;
+            //
+            // CAN
+            threadCAN = new Thread(new ThreadStart(fromCAN2UDP));
+            threadCAN.IsBackground = true;
+            threadCAN.Start();
         }
 
         int getIndicatorValue(byte pos)
@@ -347,16 +359,16 @@ namespace CANguruX
 
         string read1ConfigChannel_DescriptionBlock(ref byte CgArrIndex, ref byte[] content)
         {
-            if (CANguruArrWorked < CANguruArrFilled)
+            if (CANguruDecoderNbr < CANguruArrFilled)
             {
+                byte line = 2;
+                byte pos = 0;
                 // letzte Zeile eingelesen
                 // auswerten des Paketes
                 // Eintrag für Listbox erzeugen
-                byte line = 2;
-                byte pos = 0;
                 String entry = getindicatorName(ref line, ref pos);
                 // Anzahl der folgenden Messwerte aus Zeile 2, Position 6
-                CANguruPINGArr[CANguruArrWorked, Cnames.lngFrame] = CANguruArr[0, 0x06];
+                CANguruPINGArr[CANguruDecoderNbr, Cnames.lngFrame] = CANguruArr[0, 0x06];
                 // der Hashwert zur Unterscheidung aus der
                 // aktuellen Zeile Position 2 und 3
                 entry += "-" + String.Format("{0:X02}", content[0x02]);
@@ -365,8 +377,8 @@ namespace CANguruX
                 this.CANElemente.Invoke(new MethodInvoker(() => CANElemente.Items.Add(entry)));
                 // ersten Messwert vorbereiten
                 CANguruArrLine = 0;
-                CANguruArrWorked++;
-                getConfigData(CANguruArrWorked, CgArrIndex);
+                CANguruDecoderNbr++;
+                getConfigData(CANguruDecoderNbr, CgArrIndex);
                 return entry;
             }
             return "";
@@ -376,7 +388,7 @@ namespace CANguruX
         {
             int numberofLEDProgs = getIndicatorValue(2);
             // > 0 sind Messwertbeschreibungen
-            byte maxIndex = CANguruPINGArr[CANguruArrWorked, Cnames.lngFrame];
+            byte maxIndex = CANguruPINGArr[CANguruDecoderNbr, Cnames.lngFrame];
             int xpos0 = 50;
             int xpos1 = 250;
             int yposDelta = 0;
@@ -401,7 +413,7 @@ namespace CANguruX
             CANguruConfigArr[CgArrIndex - 1].indicatorNumericUpDown = null;
             for (int ch = 0; ch < numberofLEDProgs; ch++)
             {
-                String choice = getindicatorName(ref line, ref pos);
+                string choice = getindicatorName(ref line, ref pos);
                 choiceBox.Items.Add(choice);
             }
             choiceBox.Location = new Point(xpos1, ypos);
@@ -420,43 +432,50 @@ namespace CANguruX
             // letzte Zeile eingelesen
             {
                 CgArrIndex++;
-                getConfigData(CANguruArrWorked, CgArrIndex);
+                getConfigData(CANguruDecoderNbr, CgArrIndex);
                 return;
             }
             if (CgArrIndex == maxIndex)
             {
                 // letzter Messwert eingelesen
                 CgArrIndex = 0;
-                lastSelectedItem = CANguruArrWorked;
+                lastSelectedItem = CANguruDecoderNbr;
                 return;
             }
         }
+
         void readValueBlock(ref byte CgArrIndex)
         {
+            byte maxIndex = CANguruPINGArr[CANguruDecoderNbr, Cnames.lngFrame];
+            byte line = 1;
+            byte pos = 0;
             // > 0 sind Messwertbeschreibungen
-            byte maxIndex = CANguruPINGArr[CANguruArrWorked, Cnames.lngFrame];
             int xpos0 = 50;
             int xpos1 = 250;
             int ypos = 120 + CgArrIndex * 25;
             int w = 50;
-            byte line = 1;
-            byte pos = 0;
-            // Wertename
+            string param = "";
+            int ival = 0;
+            string val = "";
+            string unit = "";
             Label cntrlLabel = new Label();
+            Label unitLabel = new Label();
+            NumericUpDown ctrlNumericUpDown = new NumericUpDown();
+            // Wertename
+            param = getindicatorName(ref line, ref pos);
             CANguruConfigArr[CgArrIndex - 1].indicatorLabel = cntrlLabel;
-            cntrlLabel.Text = getindicatorName(ref line, ref pos);
+            cntrlLabel.Text = param;
             cntrlLabel.Location = new Point(xpos0, ypos);
             // Anfangsbezeichnung
             String notused = getindicatorName(ref line, ref pos);
             // Endebezeichnung
             notused = getindicatorName(ref line, ref pos);
+            unit = getindicatorName(ref line, ref pos);
             // Einheit
-            Label unitLabel = new Label();
             CANguruConfigArr[CgArrIndex - 1].unit = unitLabel;
-            unitLabel.Text = getindicatorName(ref line, ref pos);
+            unitLabel.Text = unit;
             unitLabel.Location = new Point(xpos1 + w + 10, ypos);
             // Wert
-            NumericUpDown ctrlNumericUpDown = new NumericUpDown();
             ctrlNumericUpDown.Width = w;
             CANguruConfigArr[CgArrIndex - 1].indicatorNumericUpDown = ctrlNumericUpDown;
             CANguruConfigArr[CgArrIndex - 1].indicatorListBox = null;
@@ -466,7 +485,9 @@ namespace CANguruX
             ctrlNumericUpDown.Minimum = CANguruConfigArr[CgArrIndex - 1].minValue;
             CANguruConfigArr[CgArrIndex - 1].maxValue = (getIndicatorValue(4) << 8) + getIndicatorValue(5);
             ctrlNumericUpDown.Maximum = CANguruConfigArr[CgArrIndex - 1].maxValue;
-            CANguruConfigArr[CgArrIndex - 1].currValue = (getIndicatorValue(6) << 8) + getIndicatorValue(7);
+            ival = (getIndicatorValue(6) << 8) + getIndicatorValue(7);
+            CANguruConfigArr[CgArrIndex - 1].currValue = ival;
+            val = ival.ToString();
             ctrlNumericUpDown.Value = CANguruConfigArr[CgArrIndex - 1].currValue;
             // Label anzeigen
             this.Configuration.Invoke(new MethodInvoker(() => Configuration.Controls.Add(cntrlLabel)));
@@ -482,17 +503,69 @@ namespace CANguruX
             // letzte Zeile eingelesen
             {
                 CgArrIndex++;
-                getConfigData(CANguruArrWorked, CgArrIndex);
+                getConfigData(CANguruDecoderNbr, CgArrIndex);
                 return;
             }
             if (CgArrIndex == maxIndex)
             {
-                // letzter Messwert eingelesen
                 CgArrIndex = 0;
-                lastSelectedItem = CANguruArrWorked;
+                lastSelectedItem = CANguruDecoderNbr;
                 return;
             }
         }
+
+        void read1ConfigChannel_DescriptionBlock4ListFile(ref byte CgArrIndex, ref byte[] content)
+        {
+            byte line = 2;
+            byte pos = 0;
+            // letzte Zeile eingelesen
+            // auswerten des Paketes
+            String entry = getindicatorName(ref line, ref pos);
+            // der Hashwert zur Unterscheidung aus der
+            // aktuellen Zeile Position 2 und 3
+            entry += "-" + String.Format("{0:X02}", content[0x02]);
+            entry += String.Format("{0:X02}", content[0x03]);
+            byte cnt = CANguruLFDecoderNbr;
+            cnt++;
+            outputlistFile.WriteLine("Decoder #" + cnt.ToString() + ": " + entry);
+        }
+
+        void readChoiceBlock4ListFile(ref byte CgArrIndex)
+        {
+            int numberofLEDProgs = getIndicatorValue(2);
+            // > 0 sind Messwertbeschreibungen
+            byte line = 1;
+            byte pos = 0;
+            // Wertename
+            string cntrlLabelText = getindicatorName(ref line, ref pos);
+            // auswählen
+            string choice = "";
+            int select = getIndicatorValue(3);
+            for (int ch = 0; ch < numberofLEDProgs; ch++)
+            {
+                choice = getindicatorName(ref line, ref pos);
+                if (ch == select)
+                    break;
+            }
+            outputlistFile.WriteLine("\t" + cntrlLabelText + ": " + choice);
+        }
+
+        void readValueBlock4ListFile(ref byte CgArrIndex)
+        {
+            byte line = 1;
+            byte pos = 0;
+            // Wertename
+            string param = getindicatorName(ref line, ref pos);
+            // Anfangsbezeichnung
+            String notused = getindicatorName(ref line, ref pos);
+            // Endebezeichnung
+            notused = getindicatorName(ref line, ref pos);
+            string unit = getindicatorName(ref line, ref pos);
+            int ival = (getIndicatorValue(6) << 8) + getIndicatorValue(7);
+            string val = ival.ToString();
+            outputlistFile.WriteLine("\t" + param + ": " + val + " " + unit);
+        }
+
         void read1ConfigChannel_ValueBlock(ref byte CgArrIndex)
         {
             int ptr = getIndicatorValue(1);
@@ -625,6 +698,13 @@ namespace CANguruX
                     case 0x0C:
                         string func = " - " + String.Format("Funktion: {0:d02} - Wert: {1:d02}", contentTmp[9], contentTmp[10]);
                         return "Lok Funktion" + func;
+                    // Zubehör schalten
+                    case 0x16:
+                        string hash_16 = " - " + String.Format("{0:X02}{1:X02}", contentTmp[2], contentTmp[3]);
+                        return "Zubehör schalten" + hash_16;
+                    case 0x17:
+                        string hash_17 = " - " + String.Format("{0:X02}{1:X02}", contentTmp[2], contentTmp[3]);
+                        return "Zubehör Rückmeldung" + hash_17;
                     // Gleisbesetztmelder / Kontaktstelle
                     case 0x22:
                         string contact16_22 = String.Format("{0:X02}", contentTmp[8]);
@@ -735,11 +815,21 @@ namespace CANguruX
             return str;
         }
 
+        void getANDsendLokCNT()
+        {
+            byte[] LOK_BUFFERCNT = { 0x00, 0x91, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            this.lokBox.Invoke(new MethodInvoker(() => LokCnt = (byte)lokBox.Items.Count));
+            LOK_BUFFERCNT[5] = LokCnt;
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(LOK_BUFFERCNT, Cnames.lngFrame);
+        }
+
         private void fromCAN2UDP()
         {
             byte[] tmpbyte6 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             byte[] pattern = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            byte[] LOK_BUFFER = { 0x00, 0x93, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             while (true)
             {
                 IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, Cnames.portinCAN);
@@ -768,8 +858,108 @@ namespace CANguruX
                             {
                                 case 0x0F: // ReadConfig_R:
                                     {
-                                        ConfigStream.getLokName(content[11]);
-                                        UpdateProgressMFXBar();
+                                        if (CV_change == true)
+                                        {
+                                            CV_change = false;
+                                            //                    D0 D1 D2 D3 D4 D5 D6 D7
+                                            //                    05 06 07 08 09 10 11 12
+                                            // 0x00(0F)0300 R [7] XX XX XX XX XX XX 10(00)
+                                            if (content[4] == 7)
+                                            {
+                                                byte value = content[11];
+                                                this.oldCV.Invoke(new MethodInvoker(() => oldCV.Text = value.ToString("D")));
+                                                this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "OK"));
+                                                this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                            }
+                                            else
+                                            {
+                                                this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "Fehler"));
+                                                this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (Lokname_change == true)
+                                            {
+                                                arrLokName[arrLokNameIndex] = (char)(content[11]);
+                                                arrLokNameIndex++;
+                                                if (arrLokNameIndex >= maxLngLokName)
+                                                {
+                                                    Lokname_change = false;
+                                                    this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "OK"));
+                                                    this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                                    for (byte i = 0; i < 0x10; i++)
+                                                    {
+                                                        if (arrLokName[i] != 0x00)
+                                                        {
+                                                            this.txtBxLokname.Invoke(new MethodInvoker(() => txtBxLokname.Text += arrLokName[i]));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                ConfigStream.getLokName(content[11]);
+                                                UpdateProgressMFXBar();
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case 0x11: // WriteConfig_R:
+                                    {
+                                        byte[] NAME_WRITE = { 0x00, 0x10, 0x03, 0x00, 0x08, 0x00, 0x00, 0x40, 0x01, 0x04, 0x03, 0x00, 0x80 };
+                                        if (CV_change == true)
+                                        {
+                                            CV_change = false;
+                                            //                    D0 D1 D2 D3 D4 D5 D6 D7
+                                            //                    05 06 07 08 09 10 11 12
+                                            // 0x00(11)0300 R [8] XX XX XX XX XX XX 10(00)
+                                            if (content[12] == 0xC0)
+                                            {
+                                                byte value = content[11];
+                                                this.oldCV.Invoke(new MethodInvoker(() => oldCV.Text = value.ToString("D")));
+                                                this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "OK"));
+                                                this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                            }
+                                            else
+                                            {
+                                                this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "Fehler"));
+                                                this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                            }
+                                        }
+                                        if (Lokname_change == true)
+                                        {
+                                            if (content[0x0B] != 0x00)
+                                                this.txtBxLokname.Invoke(new MethodInvoker(() => txtBxLokname.Text += Convert.ToChar(content[0x0B]).ToString()));
+                                            arrLokNameIndex++;
+                                            if (arrLokNameIndex == maxLngLokName)
+                                            {
+                                                Lokname_change = false;
+                                                this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = "OK"));
+                                                this.btnVolt.Invoke(new MethodInvoker(() => switchVoltage(oldVoltage)));
+                                            }
+                                            else
+                                            {
+                                                // address
+                                                NAME_WRITE[0x08] = getmfxAddress();
+                                                // inkrement index
+                                                NAME_WRITE[0x09] = (byte)(content[0x09] + 0b00000100);
+                                                // CV
+                                                NAME_WRITE[0x0A] = 0x03;
+                                                // Buchstabe
+                                                if (arrLokNameIndex < arrLokName.Length)
+                                                {
+                                                    NAME_WRITE[0x0B] = (byte)arrLokName[arrLokNameIndex];
+                                                }
+                                                else
+                                                    NAME_WRITE[0x0B] = 0x00;
+                                                NAME_WRITE[0x0C] = 0x80;
+
+                                                ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, NAME_WRITE));
+                                                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                                CANClient.Send(NAME_WRITE, Cnames.lngFrame);
+                                            }
+                                        }
                                     }
                                     break;
                                 case 0x31: // Ping_R:
@@ -813,16 +1003,72 @@ namespace CANguruX
                                     for (byte i = 0; i < Cnames.lngFrame; i++)
                                         CANguruArr[CANguruArrLine, i] = content[i];
                                     CANguruArrLine++;
-                                    // 0 ist die Gerätebeschreibung (Paket 0)
-                                    // dieses Paket ist vollständig, wenn die
-                                    // Länge der Zeile =6 beträgt
-                                    if (content[0x04] == 6)
+                                    if (listFile)
                                     {
-                                        if (CANguruArrIndex == 0)
-                                            ChangeMyText(this.TelnetComm, "Decoder angemeldet: " + read1ConfigChannel_DescriptionBlock(ref CANguruArrIndex, ref content));
-                                        //read1ConfigChannel_DescriptionBlock(ref CANguruArrIndex, ref content);
-                                        if (CANguruArrIndex > 0)
-                                            read1ConfigChannel_ValueBlock(ref CANguruArrIndex);
+                                        // dieses Paket ist vollständig, wenn die
+                                        // Länge der Zeile =6 beträgt
+                                        if (content[0x04] == 6)
+                                        {
+                                            if (CANguruLFDescriptionNbr == 0)
+                                            // 0 ist die Gerätebeschreibung (Paket 0)
+                                            {
+                                                read1ConfigChannel_DescriptionBlock4ListFile(ref CANguruLFDescriptionNbr, ref content);
+                                                //
+                                                string IPAddress;
+                                                IPAddress = String.Format("{0:D03}", CANguruPINGArr[CANguruLFDecoderNbr, 0x0E]) + ".";
+                                                IPAddress += String.Format("{0:D03}", CANguruPINGArr[CANguruLFDecoderNbr, 0x0F]) + ".";
+                                                IPAddress += String.Format("{0:D03}", CANguruPINGArr[CANguruLFDecoderNbr, 0x10]) + ".";
+                                                IPAddress += String.Format("{0:D03}", CANguruPINGArr[CANguruLFDecoderNbr, 0x11]);
+                                                outputlistFile.WriteLine("\tIP-Adresse: " + IPAddress);
+                                                //
+                                                // Anzahl der folgenden Messwerte aus Zeile 2, Position 6
+                                                CANguruPINGArr[CANguruLFDecoderNbr, Cnames.lngFrame] = CANguruArr[0, 0x06];
+                                                // ersten Messwert vorbereiten
+                                                CANguruLFDescriptionNbr = 1;
+                                                getConfigData(CANguruLFDecoderNbr, CANguruLFDescriptionNbr);
+                                            }
+                                            else
+                                            {
+                                                // > 0 sind die Beschreibungen der Einzelparameter (Paket 1 bis n)
+                                                if (getIndicatorValue(1) == 1)
+                                                    readChoiceBlock4ListFile(ref CANguruLFDescriptionNbr);
+                                                else
+                                                    readValueBlock4ListFile(ref CANguruLFDescriptionNbr);
+                                                // nächsten Wert einlesen
+                                                CANguruLFDescriptionNbr++;
+                                                if (CANguruLFDescriptionNbr <= CANguruPINGArr[CANguruLFDecoderNbr, Cnames.lngFrame])
+                                                    getConfigData(CANguruLFDecoderNbr, CANguruLFDescriptionNbr);
+                                                else
+                                                {
+                                                    // letzter Wert, dann nächster Decoder
+                                                    CANguruLFDecoderNbr++;
+                                                    CANguruLFDescriptionNbr = 0;
+                                                    if (CANguruLFDecoderNbr == CANguruArrFilled)
+                                                    {
+                                                        // kein Decoder mehr, fertig!
+                                                        outputlistFile.Close();
+                                                        listFile = false;
+                                                        break;
+                                                    }
+                                                    getConfigData(CANguruLFDecoderNbr, CANguruLFDescriptionNbr);
+                                                }
+                                            }
+                                            CANguruArrLine = 0;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // 0 ist die Gerätebeschreibung (Paket 0)
+                                        // dieses Paket ist vollständig, wenn die
+                                        // Länge der Zeile =6 beträgt
+                                        if (content[0x04] == 6)
+                                        {
+                                            if (CANguruDescriptionNbr == 0)
+                                                ChangeMyText(this.TelnetComm, "Decoder angemeldet: " + read1ConfigChannel_DescriptionBlock(ref CANguruDescriptionNbr, ref content));
+                                            //read1ConfigChannel_DescriptionBlock(ref CANguruDescriptionNbr, ref content);
+                                            if (CANguruDescriptionNbr > 0)
+                                                read1ConfigChannel_ValueBlock(ref CANguruDescriptionNbr);
+                                        }
                                     }
                                     break;
                                 case 0x50: // MfxProc:
@@ -844,16 +1090,28 @@ namespace CANguruX
                                     }
                                     if (content[5] == 0x00)
                                     {
-                                        // config stream wird beend
-                                        ConfigStream.finishConfigStruct();
-                                        ConfigStream.incnextLocid();
+                                        // wenn die verwendete LocID (content[6]) mit der hier aktuellen LocID
+                                        // identisch ist, wurde eine neue Lok erkannt
+                                        bool unkown = ConfigStream.getnextLocid() == content[6];
+                                        // config stream wird beendet
+                                        ConfigStream.finishConfigStruct(unkown);
+                                        if (unkown)
+                                        {
+                                            // LocID um eins erhöhen
+                                            ConfigStream.incnextLocid();
+                                            // Listbox um die neue Lok ergänzen
+                                            this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
+                                            // die neue Liste an die Bridge senden
+                                            getANDsendLokCNT();
+                                        }
+                                        // Meldung ausgeben
+                                        this.mfxProgress.Invoke(new MethodInvoker(() => this.mfxProgress.Text = "Fertig!"));
+                                        // locID auf jeden Fall an die Bridge melden
                                         this.numLocID.Invoke(new MethodInvoker(() => this.numLocID.Value = ConfigStream.getnextLocid()));
                                         MFX_LOCID[5] = ConfigStream.getnextLocid();
                                         ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd /*CMD.fromCAN*/, MFX_LOCID));
                                         CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
                                         CANClient.Send(MFX_LOCID, Cnames.lngFrame);
-                                        this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
-                                        this.mfxProgress.Invoke(new MethodInvoker(() => this.mfxProgress.Text = "Fertig!"));
                                     }
                                     break;
                                 //#define LoadCS2Data 0x56
@@ -1042,6 +1300,36 @@ namespace CANguruX
                                     this.lokBox.Invoke(new MethodInvoker(() => ConfigStream.editConfigStruct(lokBox)));
                                     Seta1milliTimer();
                                     break;
+                                case 0x90:
+                                    // meldet die Anzahl der Loks, die in der Listbox aufgelistet sind
+                                    getANDsendLokCNT();
+                                    break;
+                                case 0x92:
+                                    // meldet die Angaben zu der mit content[5] bestimmten Lok aus der Listbox
+                                    byte tmpLokCnt = content[5];
+                                    if (tmpLokCnt < LokCnt)
+                                    {
+                                        LOK_BUFFER[5] = tmpLokCnt;
+                                        byte[] mfxAddress = { 0x00, 0x01 };
+                                        byte mfxAdr = 0x00;
+                                        mfxAddress[0] = CConfigStream.getLocid(tmpLokCnt, 0);
+                                        mfxAddress[1] = CConfigStream.getLocid(tmpLokCnt, 1);
+                                        mfxAdr = Cutils.hex2num(mfxAddress);
+                                        LOK_BUFFER[6] = mfxAdr;
+                                        byte c = 0;
+                                        for (byte b = 0; b < 4; b++)
+                                        {
+                                            mfxAddress[0] = CConfigStream.getMFXUID(tmpLokCnt, c);
+                                            c++;
+                                            mfxAddress[1] = CConfigStream.getMFXUID(tmpLokCnt, c);
+                                            c++;
+                                            mfxAdr = Cutils.hex2num(mfxAddress);
+                                            LOK_BUFFER[7 + b] = mfxAdr;
+                                        }
+                                        CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+                                        CANClient.Send(LOK_BUFFER, Cnames.lngFrame);
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -1056,6 +1344,7 @@ namespace CANguruX
         private void mfxLoks_Click(object sender, EventArgs e)
         {
             // Gleisstrom abschalten
+            this.mfxProgress.Invoke(new MethodInvoker(() => this.mfxProgress.Text = "MFX-Lok wird gesucht"));
             byte[] MFX_STOP = { 0x00, 0x00, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, MFX_STOP));
             CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
@@ -1074,7 +1363,7 @@ namespace CANguruX
             //get current time
             string time = DateTime.Now.ToString("HH':'mm':'ss");
 
-            time += "\r\n"+diff;
+            time += "\r\n" + diff;
 
             //update label
             this.timeBox.Invoke(new MethodInvoker(() => this.timeBox.Text = time));
@@ -1141,7 +1430,7 @@ namespace CANguruX
             byte adr = (byte)numLokAdress.Value;
             byte type = (byte)lstBoxDecoderType.SelectedIndex;
             ConfigStream.fillConfigStruct(name, adr, type);
-            ConfigStream.finishConfigStruct();
+            ConfigStream.finishConfigStruct(true);
         }
 
         void findLoks_Click(object sender, EventArgs e)
@@ -1152,6 +1441,7 @@ namespace CANguruX
         private void delLok_Click(object sender, EventArgs e)
         {
             ConfigStream.delConfigStruct(lokBox);
+            getANDsendLokCNT();
         }
 
         private void numCounter_ValueChanged(object sender, EventArgs e)
@@ -1190,7 +1480,7 @@ namespace CANguruX
                 ini.AddSection("Verbose").AddKey("verbose").Value = v;
                 //Save the INI
                 ini.Save(string.Concat(Cnames.path, Cnames.ininame));
-                voltStop();
+                voltStop(btnVolt);
                 restartTheBridge();
                 this.Close();
             }
@@ -1300,14 +1590,14 @@ namespace CANguruX
                             CANguruPINGArr[y, z] = 0;
                         }
                     CANguruArrFilled = 0;
-                    CANguruArrWorked = 0;
+                    CANguruDecoderNbr = 0;
                     CANguruArrLine = 0;
-                    CANguruArrIndex = 0;
+                    CANguruDescriptionNbr = 0;
                     break;
                 case 200:
                     a1milliTimer.Enabled = false;
                     receivePINGInfos = false;
-                    getConfigData(CANguruArrWorked, CANguruArrIndex);
+                    getConfigData(CANguruDecoderNbr, CANguruDescriptionNbr);
                     break;
             }
         }
@@ -1447,14 +1737,6 @@ namespace CANguruX
             }
         }
 
-        private void voltStop()
-        {
-            byte[] VOLT_STOP = { 0x00, 0x00, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, VOLT_STOP));
-            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-            CANClient.Send(VOLT_STOP, Cnames.lngFrame);
-            Voltage = false;
-        }
         static void TCPConnect(String message)
         {
             try
@@ -1509,34 +1791,62 @@ namespace CANguruX
             Console.Read();
         }
 
-        private void btnVolt_Click(object sender, EventArgs e)
+        private void voltGo(Button btn)
         {
-            Button btn = (Button)sender;
             byte[] VOLT_GO = { 0x00, 0x00, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, VOLT_GO));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(VOLT_GO, Cnames.lngFrame);
+            btn.Text = "Gleisspannung AUS";
+            Voltage = true;
+        }
 
-            if (Voltage)
+        private void voltStop(Button btn)
+        {
+            byte[] VOLT_STOP = { 0x00, 0x00, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, VOLT_STOP));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(VOLT_STOP, Cnames.lngFrame);
+            btn.Text = "Gleisspannung EIN";
+            Voltage = false;
+        }
+
+        private void switchVoltage(bool onOff)
+        {
+            // Gleisspannung ggf. einschalten
+            oldVoltage = Voltage;
+            if (onOff == true)
             {
-                voltStop();
-                btn.Text = "Gleisspannung EIN";
+                voltGo(btnVolt);
             }
             else
             {
-                ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, VOLT_GO));
-                CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                CANClient.Send(VOLT_GO, Cnames.lngFrame);
-                btn.Text = "Gleisspannung AUS";
-                Voltage = true;
+                voltStop(btnVolt);
             }
         }
 
-        private void showConfigData(byte arrWorked, byte arrIndex)
+        private void btnVolt_Click(object sender, EventArgs e)
+        {
+            Button btn = (Button)sender;
+
+            if (Voltage)
+            {
+                voltStop(btn);
+            }
+            else
+            {
+                voltGo(btn);
+            }
+        }
+
+        private void showConfigData(byte arrWorked)
         {
             byte[] SET_CONFIG = { 0x00, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x00, 0x00 };
             if (is_connected == false)
                 return;
-            CANguruArrWorked = arrWorked;
+            CANguruDecoderNbr = arrWorked;
             CANguruArrLine = 0;
-            CANguruArrIndex = arrIndex;
+            CANguruDescriptionNbr = 1;
             // UID eintragen
             for (byte i = 5; i < 9; i++)
                 SET_CONFIG[i] = CANguruPINGArr[lastSelectedItem, i];
@@ -1614,15 +1924,15 @@ namespace CANguruX
                 if (Configuration.Controls.Contains(configControls.controlUnit[cc]))
                     Configuration.Controls.Remove(configControls.controlUnit[cc]);
             }
-            // Platz ür neue Controls
-            byte maxIndex = CANguruPINGArr[CANguruArrWorked, Cnames.lngFrame];
+            // Platz für neue Controls
+            byte maxIndex = CANguruPINGArr[CANguruDecoderNbr, Cnames.lngFrame];
             CANguruConfigArr = new configStruct[maxIndex];
             configControls.cntControls = maxIndex;
             configControls.controlLabel = new Control[maxIndex];
             configControls.controlUnit = new Control[maxIndex];
             configControls.controlValue = new Control[maxIndex];
             configControls.controlChoice = new Control[maxIndex];
-            getConfigData(CANguruArrWorked, CANguruArrIndex);
+            getConfigData(CANguruDecoderNbr, CANguruDescriptionNbr);
         }
 
         private void CANElemente_SelectedIndexChanged(object sender, EventArgs e)
@@ -1630,7 +1940,7 @@ namespace CANguruX
             int curItem = CANElemente.SelectedIndex;
             if (curItem >= 0)
             {
-                showConfigData((byte)curItem, 1);
+                showConfigData((byte)curItem);
                 string IPAddress;
                 IPAddress = String.Format("{0:D03}", CANguruPINGArr[curItem, 0x0E]) + ".";
                 IPAddress += String.Format("{0:D03}", CANguruPINGArr[curItem, 0x0F]) + ".";
@@ -1742,6 +2052,243 @@ namespace CANguruX
                 btnVerbose.Text = "Not verbose";
                 verbose = true;
             }
+        }
+
+        private byte getmfxAddress()
+        {
+            byte[] mfxAddress = { 0x00, 0x01 };
+            byte mfxAdr = 0x00;
+            int cnt = 0;
+            switchVoltage(true);
+            //
+            this.lokBox.Invoke(new MethodInvoker(() => cnt = lokBox.Items.Count));
+            if (cnt == 0)
+            {
+                MessageBox.Show("Keine Lok", "Fehler", MessageBoxButtons.OK);
+            }
+            else
+            {
+                // Get the currently selected item in the ListBox.
+                int selIndex = -1;
+                this.lokBox.Invoke(new MethodInvoker(() => selIndex = lokBox.SelectedIndex));
+                //
+                if (selIndex == -1)
+                    MessageBox.Show("Bitte eine Lok auswählen", "Fehler", MessageBoxButtons.OK);
+                else
+                {
+                    mfxAddress[0] = CConfigStream.getLocid(selIndex, 0);
+                    mfxAddress[1] = CConfigStream.getLocid(selIndex, 1);
+                    mfxAdr = Cutils.hex2num(mfxAddress);
+                }
+            }
+            //
+            return mfxAdr;
+        }
+
+        private void CVread_Click(object sender, EventArgs e)
+        {
+            byte[] CV_READ = { 0x00, 0x0E, 0x03, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] 00 00 C0 03 00 1F 10(00)
+            // lies die uid  / LocID
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] 00 00 C0 03 XX XX XX(00)
+            switchVoltage(true);
+            CV_READ[0x07] = 0xC0;
+            CV_READ[0x08] = 0x00;
+            // lies CV-Adresse
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] XX XX XX XX 00 1F XX(00)
+            // Get the bytes of the decimal
+            ushort adr = Decimal.ToUInt16(CV.Value);
+            //X can be capital and not capital it specifies if the hex characters should be upper or lowercase
+            //the number specifies the amount of hex characters
+            //2X will give you something like A5
+            string sAdr = adr.ToString("X4");
+            // Convert a C# string to a byte array
+            byte[] bAdr = Cutils.StringToByteArray(sAdr);
+            if (bAdr.Length == 2)
+            {
+                CV_READ[0x09] = bAdr[0];
+                CV_READ[0x0A] = bAdr[1];
+            }
+            if (bAdr.Length == 1)
+            {
+                CV_READ[0x09] = 0x00;
+                CV_READ[0x0A] = bAdr[0];
+            }
+            if (bAdr.Length == 0)
+            {
+                MessageBox.Show(this, "Falsche CV-Adresse", "Fehler", MessageBoxButtons.OK);
+                return;
+            }
+            // Anzahl der erwarteten Werte
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] XX XX XX XX XX XX 10(00)
+            CV_READ[0x0B] = 0x01;
+            //
+            CV_change = true;
+            this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = ""));
+            this.oldCV.Invoke(new MethodInvoker(() => oldCV.Text = ""));
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, CV_READ));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(CV_READ, Cnames.lngFrame);
+        }
+
+        private void CVwrite_Click(object sender, EventArgs e)
+        {
+            byte[] CV_WRITE = { 0x00, 0x10, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            switchVoltage(true);
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(10)0300 R [8] 00 00 C0 00 00 1F 10 00
+            // lies CV-Adresse
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(10)0300 R [8] 00 00 C0 00 00 iF XX XX
+            CV_WRITE[0x07] = 0xC0;
+            CV_WRITE[0x08] = 0x00;
+            // Get the bytes of the decimal
+            ushort adr = Decimal.ToUInt16(CV.Value);
+            //X can be capital and not capital it specifies if the hex characters should be upper or lowercase
+            //the number specifies the amount of hex characters
+            //X2 will give you something like A5
+            string sAdr = adr.ToString("X4");
+            // Convert a C# string to a byte array  
+            byte[] bAdr = Cutils.StringToByteArray(sAdr);
+            if (bAdr.Length == 2)
+            {
+                CV_WRITE[0x09] = bAdr[0];
+                CV_WRITE[0x0A] = bAdr[1];
+            }
+            if (bAdr.Length == 1)
+            {
+                CV_WRITE[0x09] = 0x00;
+                CV_WRITE[0x0A] = bAdr[0];
+            }
+            if (bAdr.Length == 0)
+            {
+                MessageBox.Show(this, "Falsche CV-Adresse", "Fehler", MessageBoxButtons.OK);
+                return;
+            }
+            // neuer Wert
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(10)0300 R [8] XX XX XX XX XX XX 10 XX
+
+            ushort val = Decimal.ToUInt16(newCV.Value);
+            if (val > 255)
+            {
+                MessageBox.Show(this, "Wert zu groß", "Fehler", MessageBoxButtons.OK);
+                return;
+            }
+            //X can be capital and not capital it specifies if the hex characters should be upper or lowercase
+            //the number specifies the amount of hex characters
+            //X2 will give you something like A5
+            string sval = val.ToString("X2");
+            // Convert a C# string to a byte array  
+            byte[] bval = Cutils.StringToByteArray(sval);
+            if (bval.Length == 1)
+            {
+                CV_WRITE[0x0B] = bval[0];
+            }
+            // Controll
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(10)0300 R [8] XX XX XX XX XX XX XX 00
+            CV_WRITE[0x0C] = 0x00;
+            //
+            CV_change = true;
+            this.CVresult.Invoke(new MethodInvoker(() => CVresult.Text = ""));
+            this.oldCV.Invoke(new MethodInvoker(() => oldCV.Text = ""));
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, CV_WRITE));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(CV_WRITE, Cnames.lngFrame);
+        }
+
+        private void readName_Click(object sender, EventArgs e)
+        {
+            /*
+            >UDP>CAN> 0x00(0E)0300   [7] 00 00 40 01 04 03 10(00) ..@.....
+            >CAN>     0x00(0F)0300 R [7] 00 00 40 01 04 03 42(00) ..@...B.
+            */
+            byte[] NAME_READ = { 0x00, 0x0E, 0x03, 0x00, 0x07, 0x00, 0x00, 0x40, 0x01, 0x04, 0x03, 0x10, 0x00 };
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] 00 00 C0 03 00 1F 10(00)
+            // lies die uid  / LocID
+            //                    D0 D1 D2 D3 D4 D5 D6 D7
+            //                    05 06 07 08 09 10 11 12
+            // 0x00(0F)0300 R [7] 00 00 C0 03 XX XX XX(00)
+            Lokname_change = true;
+            txtBxLokname.Text = "";
+            arrLokNameIndex = 0;
+            Array.Resize(ref arrLokName, maxLngLokName);
+            for (byte i = 0; i < maxLngLokName; i++)
+            {
+                arrLokName[i] = (char)0x00;
+            }
+            NAME_READ[0x08] = getmfxAddress();
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, NAME_READ));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(NAME_READ, Cnames.lngFrame);
+        }
+
+        private void writeName_Click(object sender, EventArgs e)
+        {
+            byte[] NAME_WRITE = { 0x00, 0x10, 0x03, 0x00, 0x08, 0x00, 0x00, 0x40, 0x01, 0x04, 0x03, 0x00, 0x80 };
+            /*
+                                         D0 D1 D2 D3 D4 D5 D6 D7
+                                         05 06 07 08 09 10 11 12
+            >UDP>CAN> 0x00(10)0300   [8] 00 00 40 01 04 03 42 80  ..@...B.
+            >CAN>     0x00(11)5F5E R [8] 00 00 40 01 04 03 42 C0  ..@...B.
+    */
+            if (txtBxLokname.Text == "")
+                return;
+            Array.Resize(ref arrLokName, maxLngLokName);
+            for (byte i = 0; i < maxLngLokName; i++)
+            {
+                arrLokName[i] = (char)0x00;
+            }
+            Lokname_change = true;
+            arrLokName = txtBxLokname.Text.ToCharArray();
+            arrLokNameIndex = 0;
+            NAME_WRITE[0x08] = getmfxAddress();
+            NAME_WRITE[0x09] = 0x04;
+            NAME_WRITE[0x0A] = 0x03;
+            NAME_WRITE[0x0B] = (byte)arrLokName[arrLokNameIndex];
+            NAME_WRITE[0x0C] = 0x80;
+            txtBxLokname.Text = "";
+            ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, NAME_WRITE));
+            CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
+            CANClient.Send(NAME_WRITE, Cnames.lngFrame);
+        }
+
+        private void fileSaveButton_Click(object sender, EventArgs e)
+        {
+
+            // Set a variable to the Documents path.
+            int cnt = 0;
+
+            outputlistFile = new StreamWriter(string.Concat(Cnames.path, Cnames.saveTxtname), false, Encoding.ASCII);
+            outputlistFile.WriteLine("Liste der installierten CANguru-Decoder:");
+
+            cnt = CANElemente.Items.Count;
+            if (cnt == 0)
+            {
+                outputlistFile.WriteLine("Keine CANguru-Decoder gefunden.");
+                return;
+            }
+            outputlistFile.WriteLine(cnt.ToString() + " CANguru-Decoder gefunden.");
+            outputlistFile.WriteLine("");
+            CANguruLFDecoderNbr = 0;
+            CANguruLFDescriptionNbr = 0;
+            listFile = true;
+            getConfigData(CANguruLFDecoderNbr, CANguruLFDescriptionNbr);
         }
     }
 }

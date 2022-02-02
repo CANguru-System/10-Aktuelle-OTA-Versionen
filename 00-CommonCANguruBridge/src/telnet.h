@@ -46,10 +46,11 @@ public:
     // stellt die Ziel-IP-Adresse zur Verfügung
     IPAddress getipBroadcast();
     // setzt die IP-Adresse
-    void setipBroadcast(IPAddress Broadcast)
+    IPAddress setipBroadcast(IPAddress Broadcast)
     {
         ipBroadcast = Broadcast;
         ipBroadcastSet = true;
+        return ipBroadcast;
     }
     // gibt die Info zurück, ob die IP-Adresse bereits bekannt/gesetzt ist
     bool getIsipBroadcastSet()

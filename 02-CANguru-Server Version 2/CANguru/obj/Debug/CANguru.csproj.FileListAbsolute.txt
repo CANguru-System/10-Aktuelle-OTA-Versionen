@@ -79,3 +79,4 @@ C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache

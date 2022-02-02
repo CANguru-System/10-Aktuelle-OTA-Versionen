@@ -36,6 +36,7 @@ esp_now_peer_info_t cand;
 String ssidSLV = "CNgrSLV";
 
 bool gotPINGmsg;
+bool bSendLokBuffer;
 bool SYSseen;
 uint8_t cntConfig;
 uint8_t Clntbuffer[CAN_FRAME_SIZE]; //buffer to hold incoming packet,
@@ -192,6 +193,7 @@ void espInit()
   gate.isType = false;
   waiting4Handshake = true;
   gotPINGmsg = false;
+  bSendLokBuffer = false;
   initVariant();
   if (esp_now_init() == ESP_OK)
   {
@@ -261,16 +263,24 @@ void set_SYSseen(bool SYS)
   SYSseen = SYS;
 }
 
-// gibt an, ob 
+// gibt an, ob ein PING empfangen wurde
 bool get_gotPINGmsg()
 {
   return gotPINGmsg;
 }
 
-// setzt, dass 
+// setzt, dass
 void set_gotPINGmsg(bool ping)
 {
   gotPINGmsg = ping;
+}
+
+// gibt an, ob ein sendLokBuffer zu senden ist
+bool get_sendLokBuffer()
+{
+  bool tmp = bSendLokBuffer;
+  bSendLokBuffer = false;
+  return tmp;
 }
 
 // setzt die Variable cntConfig auf Null
@@ -401,7 +411,7 @@ void Scan4Slaves()
 void initVariant()
 {
   WiFi.mode(WIFI_MODE_STA);
-  esp_err_t setMacResult = esp_wifi_set_mac(ESP_IF_WIFI_STA, &masterCustomMac[0]);
+  esp_err_t setMacResult = esp_wifi_set_mac((wifi_interface_t)ESP_IF_WIFI_STA, &masterCustomMac[0]);
   if (setMacResult == ESP_OK)
 #ifdef OLED
     display.print(F("Init Variant ok!"));
@@ -636,6 +646,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
   {
     AllSlavesOnboard(data, data_len);
     gotPINGmsg = true;
+    bSendLokBuffer = true;
   }
   else
   {

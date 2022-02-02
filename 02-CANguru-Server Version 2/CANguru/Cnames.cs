@@ -23,6 +23,7 @@ namespace CANguruX
         };
         static public string path = @"c:\CANguru";
         static public string ininame = @"\CANguru.ini";
+        static public string saveTxtname = @"\CANguru.txt";
         static public string cs2name = @"\lokomotive.cs2";
         static public string name001 = @"\lokomotive.001";
         static public string name002 = @"\lokomotive.002";

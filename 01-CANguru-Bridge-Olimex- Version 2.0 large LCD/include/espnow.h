@@ -82,7 +82,9 @@ enum patterns
   M_DONOTCOMPRESS,
   M_GETCONFIG1,
   M_GETCONFIG2,
-  M_SIGNAL
+  M_SIGNAL,
+  M_CNTLOKBUFFER,
+  M_SENDLOKBUFFER
 };
 
 // Kommunikationslinien
@@ -162,10 +164,12 @@ uint8_t get_slaveCnt();
 bool get_SYSseen();
 // setzt, dass SYS gestartet ist
 void set_SYSseen(bool SYS);
-// gibt an, ob 
+// gibt an, ob ein PING empfangen wurde
 bool get_gotPINGmsg();
 // setzt, dass 
 void set_gotPINGmsg(bool ping);
+// gibt an, ob ein sendLokBuffer zu senden ist
+bool get_sendLokBuffer();
 // setzt die Variable cntConfig auf Null
 void set_cntConfig();
 // fordert einen Slave dazu auf, Anfangsdaten bekannt zu geben
