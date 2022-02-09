@@ -34,6 +34,8 @@
 #define data6 11
 #define data7 12
 
+#define setup_done 0x47
+
 /*
  *  Gerätetypen
  */
@@ -55,7 +57,7 @@
   Rest Frei								1111
 */
 
-#define UID_BASE 0x45009195ULL //CAN-UID
+#define UID_BASE  0x45009195ULL // CAN-UID
 #define maxdevice 99
 
 #define DEVTYPE_GFP 0x0000
@@ -95,11 +97,20 @@
 */
 #define SYS_CMD 0x00    //Systembefehle
 #define SYS_GO		          0x01	//System - Go
+#define LokDiscovery 0x02
+#define LokDiscovery_R LokDiscovery+1
+#define MFXVerify 0x07
+#define MFXVerify_R MFXVerify+1
 #define Lok_Speed           0x08
 #define Lok_Direction       0x0A
 #define Lok_Function        0x0C
 #define SYS_STAT 0x0B   //System - Status (sendet geänderte Konfiguration)
+#define ReadConfig   0x0E
+#define ReadConfig_R   ReadConfig+1
+#define WriteConfig   0x10
+#define WriteConfig_R   WriteConfig+1
 #define SWITCH_ACC 0x16 //Magnetartikel schalten
+#define SWITCH_ACC_R 0x17 //Magnetartikel schalten
 #define S88_Polling 0x20
 #define S88_EVENT 0x22            //Rückmelde-Event
 #define S88_EVENT_R S88_EVENT + 1 // Rück-Rückmelde-Event
@@ -135,6 +146,10 @@
 #define SEND_IP_R SEND_IP + 1
 #define INIT_COMPLETE 0x66
 #define CALL4CONNECT 0x88
+#define sendCntLokBuffer 0x90
+#define sendCntLokBuffer_R 0x91
+#define sendLokBuffer 0x92
+#define sendLokBuffer_R 0x93
 #define RESET_MEM 0xFE
 #define START_OTA 0xFF
 

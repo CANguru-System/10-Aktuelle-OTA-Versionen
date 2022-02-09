@@ -7,6 +7,7 @@
 const uint8_t numChars = 32;
 // EEPROM-Adressen
 #define setup_done 0x47
+#define setup_NOT_done 0x00
 // EEPROM-Belegung
 // EEPROM-Speicherplätze der Local-IDs
 const uint16_t adr_setup_done = 0x00;
