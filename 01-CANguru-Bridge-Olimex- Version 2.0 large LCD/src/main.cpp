@@ -460,7 +460,30 @@ void proc2CAN(uint8_t *buffer, CMD dir)
   // can_message_t myMessageToSend = {1, 0x123, 8, {0x01, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x99}}; // geschraubt
   //   can_message_t myMessageToSend = {1, 0x125, 8, {0x01, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x99}};  // frei
   //   can_message_t Message2Send = {0, 0x00, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
-  can_message_t Message2Send = {CAN_MSG_FLAG_EXTD | CAN_MSG_FLAG_SS, 0x0000, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+
+#ifdef xx
+typedef struct {
+    union {
+        struct {
+            //The order of these bits must match deprecated message flags for compatibility reasons
+            uint32_t extd: 1;           /**< Extended Frame Format (29bit ID) */
+            uint32_t rtr: 1;            /**< Message is a Remote Frame */
+            uint32_t ss: 1;             /**< Transmit as a Single Shot Transmission. Unused for received. */
+            uint32_t self: 1;           /**< Transmit as a Self Reception Request. Unused for received. */
+            uint32_t dlc_non_comp: 1;   /**< Message's Data length code is larger than 8. This will break compliance with ISO 11898-1 */
+            uint32_t reserved: 27;      /**< Reserved bits */
+        };
+        //Todo: Deprecate flags
+        uint32_t flags;                 /**< Deprecated: Alternate way to set bits using message flags */
+    };
+    uint32_t identifier;                /**< 11 or 29 bit identifier */
+    uint8_t data_length_code;           /**< Data length code */
+    uint8_t data[TWAI_FRAME_MAX_DLC];    /**< Data bytes (not relevant in RTR frame) */
+} twai_message_t;
+#endif
+
+//*  can_message_t Message2Send = {CAN_MSG_FLAG_EXTD | CAN_MSG_FLAG_SS, 0x00, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+  can_message_t Message2Send = {CAN_MSG_FLAG_EXTD | CAN_MSG_FLAG_SS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   // CAN uses (network) big endian format
   // Maerklin TCP/UDP Format: always 13 (CAN_FRAME_SIZE) bytes
   //   byte 0 - 3  CAN ID
@@ -598,6 +621,7 @@ void proc_fromGW2CANandClnt()
       }
       break;
     case restartBridge:
+      proc2Clnts(UDPbuffer, fromGW2Clnt);
       ESP.restart();
       break;
     }
@@ -1023,6 +1047,7 @@ void setup()
   //  Serial.setDebugOutput(true);
   Serial.println("\r\n\r\nC A N g u r u - B r i d g e - " + CgVersionnmbr);
   drawCircle = false;
+  delay(2000);
 #ifdef OLED
   // das Display wird initalisiert
   initDisplay_OLED();

@@ -108,3 +108,14 @@ C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.exe
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.pdb
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csprojAssemblyReference.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Release\CANguru.exe.config
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Release\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Release\CANguru.pdb
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.SuggestedBindingRedirects.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguruX.Form1.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\UDP_ClntSrvr.Properties.Resources.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.GenerateResource.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.CoreCompileInputs.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.CopyComplete
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.pdb

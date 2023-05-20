@@ -1594,7 +1594,7 @@ namespace CANguruX
                     CANguruArrLine = 0;
                     CANguruDescriptionNbr = 0;
                     break;
-                case 200:
+                case 500:
                     a1milliTimer.Enabled = false;
                     receivePINGInfos = false;
                     getConfigData(CANguruDecoderNbr, CANguruDescriptionNbr);

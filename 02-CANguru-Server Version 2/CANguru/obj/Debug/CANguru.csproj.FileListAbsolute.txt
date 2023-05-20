@@ -80,3 +80,17 @@ C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
 C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.AssemblyReference.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.SuggestedBindingRedirects.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CoreCompileInputs.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb

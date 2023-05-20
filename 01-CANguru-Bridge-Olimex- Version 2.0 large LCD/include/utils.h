@@ -108,6 +108,7 @@ WiFiServer TCPINSYS(localPortinSYS);
 // behandelt die diversen Stadien des ETHERNET-Aufbaus
 void WiFiEvent(WiFiEvent_t event)
 {
+  Serial.println("in WiFiEvent: "+String(event));
 #ifdef OLED
   Adafruit_SSD1306 *displ = getDisplay();
 #endif
@@ -253,6 +254,7 @@ void stillAliveBlinking()
         case DEVTYPE_SERVO:
         case DEVTYPE_SIGNAL:
         case DEVTYPE_LEDSIGNAL:
+        case DEVTYPE_CANBOOSTER:
           sendTheData(slv, M_IDATA, CAN_FRAME_SIZE);
           delay(4 * wait_time_medium);
           break;
@@ -261,7 +263,6 @@ void stillAliveBlinking()
           delay(24 * wait_time_medium);
           break;
         case DEVTYPE_LIGHT:
-        case DEVTYPE_CANFUSE:
         case DEVTYPE_GATE:
           break;
         }
