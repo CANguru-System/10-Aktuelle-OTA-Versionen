@@ -123,18 +123,40 @@ void Sweeper::Update()
     // Zielposition wurde erreicht
     if (way == longway)
     {
-      // Überschwingpunkt jetzt rückwärts zum Zielpunkt laufen
-      increment *= -1;
-      // kein Überschwingen mehr
-      endpos = 0;
       // Umschalten auf noway
+      increment *= -1;
+      endpos = 0;
       way = noway;
+    }
+    if (way == noway)
+    {
+      wakeuptimer++;
+      if (wakeuptimer >= 60000)
+      {
+        wakeuptimer = 0;
+        switch (wakeupdir)
+        {
+        case right:
+        {
+          increment = -wakeupincr;
+          wakeupdir = left;
+        }
+        break;
+        case left:
+        {
+          increment = wakeupincr;
+          wakeupdir = right;
+        }
+        break;
+        }
+        destpos += increment;
+      }
     }
   }
 #endif
 #ifdef linearservo
+  const uint8_t wakeupincr = 0;
   // Überprüfung, ob die Zielposition bereits erreicht wurde
-  // endpos ist das Überschwingen
   if (pos != (destpos + endpos))
   {
     // wenn die Zeit updateInterval vorüber ist, wird
@@ -152,12 +174,34 @@ void Sweeper::Update()
     // Zielposition wurde erreicht
     if (way == longway)
     {
-      // Überschwingpunkt jetzt rückwärts zum Zielpunkt laufen
-      increment *= -1;
-      // kein Überschwingen mehr
-      endpos = 0;
       // Umschalten auf noway
+      increment *= -1;
+      endpos = 0;
       way = noway;
+    }
+    if (way == noway)
+    {
+      wakeuptimer++;
+      if (wakeuptimer >= 60000)
+      {
+        wakeuptimer = 0;
+        switch (wakeupdir)
+        {
+        case right:
+        {
+          increment = -wakeupincr;
+          wakeupdir = left;
+        }
+        break;
+        case left:
+        {
+          increment = wakeupincr;
+          wakeupdir = right;
+        }
+        break;
+        }
+        destpos += increment;
+      }
     }
   }
 #endif

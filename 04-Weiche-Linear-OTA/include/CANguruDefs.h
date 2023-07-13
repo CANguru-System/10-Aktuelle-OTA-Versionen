@@ -59,7 +59,6 @@
 #define DEVTYPE_SIGNAL 0x0056
 #define DEVTYPE_LEDSIGNAL 0x0057
 #define DEVTYPE_CANFUSE 0x0058
-#define DEVTYPE_GATE 0x0059
 #define DEVTYPE_LastCANguru 0x005F
 
 #define BASE_Offset 0x01
@@ -99,12 +98,9 @@
 #define SYS_STAT 0x0B   //System - Status (sendet geänderte Konfiguration)
 #define SWITCH_ACC 0x16 //Magnetartikel schalten
 #define S88_Polling 0x20
-#define S88_EVENT 0x22            //Rückmelde-Event
-#define S88_EVENT_R S88_EVENT + 1 // Rück-Rückmelde-Event
-#define PING 0x30                 //CAN-Teilnehmer anpingen
-#define PING_R PING + 1           //CAN-Teilnehmer anpingen
+#define S88_EVENT 0x22 //Rückmelde-Event
+#define PING 0x30      //CAN-Teilnehmer anpingen
 #define CONFIG_Status 0x3A
-#define CONFIG_Status_R CONFIG_Status + 1
 
 #define stopp 0x00
 #define halt 0x02
@@ -119,15 +115,18 @@
 #define MfxProc_R 0x51
 #define sendInitialData 0x52
 #define BlinkAlive 0x60
-#define restartBridge 0x62
-#define SEND_IP 0x64
-#define START_OTA 0xFF   
 
 // damit 1024 (eigentlich 1023) Artikel adressiert werden können,
 // bedarf es 1024/4 Decoder; das 256 bzw. bei 255 entspr. 0xFF
 const int16_t minadr = 0x01;
 const int16_t maxadr = 0xFF;
 const uint8_t uid_num = 4;
+
+struct deviceparams
+{
+  uint8_t decoderadr;
+  uint8_t uid_device[uid_num];
+};
 
 // converts highbyte of integer to char
 char highbyte2char(int num);
