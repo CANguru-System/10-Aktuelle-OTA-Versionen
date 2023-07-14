@@ -18,8 +18,8 @@
 // Im Folgenden werden #define-Direktiven durch Kommentarzeichen ein- oder ausgeschaltet.
 
 // Bei einem Signal ist nur formsignal definiert
-#define formsignal
+//#define formsignal
 // Bei einem normalen Armservo ist nur armservo definiert
 //#define armservo
 // Bei einem Linearservo ist nur linearservo definiert
-//#define linearservo
+#define linearservo

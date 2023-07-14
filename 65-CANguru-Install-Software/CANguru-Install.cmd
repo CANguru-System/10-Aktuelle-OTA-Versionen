@@ -14,9 +14,9 @@ echo Bitte waehlen Sie eine der folgenden Optionen:
 echo. 
 echo  1 - COM-Port festlegen
 echo  2 - Flash-Speicher loeschen
-echo  3 - Upload fuer OTA vorbereiten auf %COMPORT%
-echo  4 - Putty starten
-echo  5 - CANguru-Software (aus Ordner CANguru-Files) hochladen auf %COMPORT%
+echo  3 - OTA-Upload vorbereiten auf %COMPORT%
+echo  4 - Upload (aus Ordner CANguru-Files) ueber %COMPORT%
+echo  5 - Putty starten
 echo. 
 echo  x - Beenden
 echo.
@@ -25,9 +25,9 @@ set /p SELECTED=Ihre Auswahl:
 if "%SELECTED%" == "x" goto :eof
 if "%SELECTED%" == "1" goto :SetComPort
 if "%SELECTED%" == "2" goto :ERASE_FLASH
-if "%SELECTED%" == "3" goto :SHOW_IP
-if "%SELECTED%" == "4" goto :Putty
-if "%SELECTED%" == "5" goto :CANguru
+if "%SELECTED%" == "3" goto :PREPARE_OTA
+if "%SELECTED%" == "4" goto :UPLOAD_FIRMWARE
+if "%SELECTED%" == "5" goto :Putty
 
 goto :errorInput 
 
@@ -102,9 +102,20 @@ echo.
 pause
 goto :loop
 
-:SHOW_IP
+:PREPARE_OTA
 @echo on
-esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 show_IP-Address/bootloader.bin 0x8000 show_IP-Address/partitions.bin 0xe000 show_IP-Address/boot_app0.bin 0x10000 show_IP-Address/firmware.bin
+esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 Prepare-OTA/bootloader.bin 0x8000 Prepare-OTA/partitions.bin 0xe000 Prepare-OTA/boot_app0.bin 0x10000 Prepare-OTA/firmware.bin
+Putty\putty.exe -serial %COMPORT% -sercfg 115200,8,n,1,N
+@echo off
+echo.
+pause
+goto :loop
+
+:UPLOAD_FIRMWARE
+@echo on
+esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 Prepare-Upload/bootloader.bin 0x8000 Prepare-Upload/partitions.bin 0x10000 Prepare-Upload/firmware.bin
+Putty\putty.exe -serial %COMPORT% -sercfg 115200,8,n,1,N
+esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 CANguru-Files/bootloader.bin 0x8000 CANguru-Files/partitions.bin 0x10000 CANguru-Files/firmware.bin
 @echo off
 echo.
 pause
@@ -113,14 +124,6 @@ goto :loop
 :Putty
 @echo on
 Putty\putty.exe -serial %COMPORT% -sercfg 115200,8,n,1,N
-@echo off
-echo.
-pause
-goto :loop
-
-:CANguru
-@echo on
-esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 CANguru-Files/bootloader.bin 0x8000 CANguru-Files/partitions.bin 0x10000 CANguru-Files/firmware.bin
 @echo off
 echo.
 pause

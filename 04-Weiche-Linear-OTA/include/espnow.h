@@ -37,7 +37,6 @@ uint8_t opFrame[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 bool got1CANmsg = false;
 byte cnt = 0;
 String ssid0 = "CNgrSLV";
-deviceparams params;
 uint8_t hasharr[] = {0x00, 0x00};
 
 Ticker tckr;
@@ -98,10 +97,10 @@ werden die Bits entsprechend zur CS1 Unterscheidung gesetzt.
 void generateHash(uint8_t offset)
 {
   uint32_t uid = UID_BASE + offset;
-  params.uid_device[0] = (uint8_t)(uid >> 24);
-  params.uid_device[1] = (uint8_t)(uid >> 16);
-  params.uid_device[2] = (uint8_t)(uid >> 8);
-  params.uid_device[3] = (uint8_t)uid;
+  uid_device[0] = (uint8_t)(uid >> 24);
+  uid_device[1] = (uint8_t)(uid >> 16);
+  uid_device[2] = (uint8_t)(uid >> 8);
+  uid_device[3] = (uint8_t)uid;
 
   uint16_t highbyte = uid >> 16;
   uint16_t lowbyte = uid;
@@ -189,15 +188,12 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
   case BlinkAlive:
     if (secs < 10)
       secs = 10;
-    break;
+  break;
   case PING:
-  {
     statusPING = true;
     got1CANmsg = true;
     // alles Weitere wird in loop erledigt
-  }
   break;
-  // config
   case CONFIG_Status:
   {
     CONFIG_Status_Request = true;
@@ -207,13 +203,26 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     got1CANmsg = true;
   }
   break;
+  // IP-Adresse rückmelden
+  case SEND_IP:
+      SEND_IP_Request = true;
+      got1CANmsg = true;
+      // alles Weitere wird in loop erledigt
+  break;
+  // config
   case SYS_CMD:
   {
-    if (opFrame[9] == SYS_STAT)
-    {
+    switch (opFrame[9]) {
+    case SYS_STAT:
       SYS_CMD_Request = true;
       // alles Weitere wird in loop erledigt
       got1CANmsg = true;
+    break;
+    case START_OTA:
+      START_OTA_Request = true;
+      // alles Weitere wird in loop erledigt
+      got1CANmsg = true;
+    break;
     }
   }
   break;

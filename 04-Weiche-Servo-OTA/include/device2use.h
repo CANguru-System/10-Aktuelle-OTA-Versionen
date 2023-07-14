@@ -14,7 +14,7 @@
 // Dies geschieht durch sogenannte Compiler-Direktiven, die durch #ifdef eingeleitet werden
 // immer dann, wenn das auf #ifdef folgende Wort vorab definiert wurde (durch die Direktive #define),
 // wird der durch die #ifdef Direktive eingeschlossene Quelltext übersetzt und wird Bestandteil
-// des Programmes. Ansosnsten wird er ausgeblendet.
+// des Programmes. Ansonsten wird er ausgeblendet.
 // Im Folgenden werden #define-Direktiven durch Kommentarzeichen ein- oder ausgeschaltet.
 
 // Bei einem Signal ist nur formsignal definiert

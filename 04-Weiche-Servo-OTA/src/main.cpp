@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include "CANguruDefs.h"
+#include "CARguruDefs.h"
 #include "EEPROM.h"
 #include "esp32-hal-ledc.h"
 #include "Sweeper.h"
@@ -20,6 +20,8 @@
 #include <esp_wifi.h>
 #include <Ticker.h>
 #include "device2use.h"
+#include <ArduinoOTA.h>
+#include <OTA_include.h>
 
 // Anzahl der Magnetartikel
 #define num_servos 4
@@ -28,13 +30,13 @@
 #define setup_done 0x47
 // EEPROM-Belegung
 // EEPROM-Speicherplätze der Local-IDs
-const uint16_t adr_setup_done = 0x00;
-const uint16_t adr_decoderadr = 0x01;
-const uint16_t adr_SrvDel = 0x02;
-const uint16_t adr_angleStart = 0x03;
-const uint16_t adr_angleStopp = 0x04;
-const uint16_t adr_currEnd = 0x05;
-const uint16_t acc_state = 0x06; // ab dieser Adresse werden die Weichenstellungen gespeichert
+//const uint16_t adr_setup_done = 0x00;
+const uint16_t adr_decoderadr = lastAdr0 + 0x01;
+const uint16_t adr_SrvDel = lastAdr0 + 0x02;
+const uint16_t adr_angleStart = lastAdr0 + 0x03;
+const uint16_t adr_angleStopp = lastAdr0 + 0x04;
+const uint16_t adr_currEnd = lastAdr0 + 0x05;
+const uint16_t acc_state = lastAdr0 + 0x06; // ab dieser Adresse werden die Weichenstellungen gespeichert
 const uint16_t lastAdr = acc_state + num_servos;
 const uint16_t EEPROM_SIZE = lastAdr;
 
@@ -55,9 +57,14 @@ enum Kanals
 
 Kanals CONFIGURATION_Status_Index = Kanal00;
 
+uint8_t decoderadr;
+uint8_t uid_device[uid_num];
+
 // Zeigen an, ob eine entsprechende Anforderung eingegangen ist
 bool CONFIG_Status_Request = false;
 bool SYS_CMD_Request = false;
+bool START_OTA_Request = false;
+bool SEND_IP_Request = false;
 
 // Timer
 boolean statusPING;
@@ -91,6 +98,7 @@ const int16_t maxEnd = 25;
 // Protokollkonstante
 #define PROT MM_ACC
 
+IPAddress IP;
 // Forward declaration
 void switchAcc(uint8_t acc_num);
 void acc_report(uint8_t num);
@@ -100,28 +108,20 @@ void generateHash(uint8_t offset);
 
 #include "espnow.h"
 
-// Funktion stellt sicher, dass keine unerlaubten Werte geladen werden können
-uint8_t readValfromEEPROM(uint16_t adr, uint8_t val, uint8_t min, uint8_t max)
-{
-  uint8_t v = EEPROM.read(adr);
-  if ((v >= min) && (v <= max))
-    return v;
-  else
-    return val;
-}
-
 void setup()
 {
   Serial.begin(bdrMonitor);
+  delay(500);
 #ifdef armservo
-  Serial.println("\r\n\r\nCANguru - Weiche");
+  log_i("\r\n\r\nCANguru - Weiche");
 #endif
 #ifdef linearservo
-  Serial.println("\r\n\r\nCANguru - Weiche - Linear-Servo");
+  log_i("\r\n\r\nCANguru - Weiche - Linear-Servo");
 #endif
 #ifdef formsignal
-  Serial.println("\r\n\r\nCANguru - Formsignal");
+  log_i("\r\n\r\nCANguru - Formsignal");
 #endif
+
   // der Decoder strahlt mit seiner Kennung
   // damit kennt die CANguru-Bridge (der Master) seine Decoder findet
   startAPMode();
@@ -129,10 +129,11 @@ void setup()
   addMaster();
   // WLAN -Verbindungen können wieder ausgeschaltet werden
   WiFi.disconnect();
+  
   // die EEPROM-Library wird gestartet
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    Serial.println("Failed to initialise EEPROM");
+    log_i("Failed to initialise EEPROM");
   }
   uint8_t setup_todo = EEPROM.read(adr_setup_done);
   if (setup_todo != setup_done)
@@ -144,10 +145,11 @@ void setup()
     // 47, weil das EEPROM (hoffentlich) nie ursprünglich diesen Inhalt hatte
 
     // setzt die Boardnum anfangs auf 1
-    params.decoderadr = 1;
-    EEPROM.write(adr_decoderadr, params.decoderadr);
+    decoderadr = 1;
+    EEPROM.write(adr_decoderadr, decoderadr);
     EEPROM.commit();
     // Festlegen der Winkel
+    // Startwinkel
 #ifdef armservo
     servoAngleStart = 5;
 #endif
@@ -159,18 +161,20 @@ void setup()
 #endif
     EEPROM.write(adr_angleStart, servoAngleStart);
     EEPROM.commit();
+    // Stoppwinkel
 #ifdef armservo
     servoAngleStopp = 74;
 #endif
 #ifdef linearservo
-    servoAngleStopp = 115;
+    servoAngleStopp = 125;
 #endif
 #ifdef formsignal
     servoAngleStopp = 50;
 #endif
     EEPROM.write(adr_angleStopp, servoAngleStopp);
     EEPROM.commit();
-    currEnd = 5;
+    // Ausladung
+    currEnd = 15;
     EEPROM.write(adr_currEnd, currEnd);
     EEPROM.commit();
     // Verzögerung
@@ -190,16 +194,22 @@ void setup()
       EEPROM.write(acc_state + servo, right);
       EEPROM.commit();
     }
+    // ota auf "FALSE" setzen
+    EEPROM.write(adr_ota, startWithoutOTA);
+    EEPROM.commit();
     // setup_done auf "TRUE" setzen
     EEPROM.write(adr_setup_done, setup_done);
     EEPROM.commit();
   }
   else
   {
+    uint8_t ota = EEPROM.readByte(adr_ota);
+    if (ota==startWithoutOTA) {
     // nach dem ersten Mal Einlesen der gespeicherten Werte
     // Adresse
-    params.decoderadr = readValfromEEPROM(adr_decoderadr, minadr, minadr, maxadr);
-    // Winkel
+    decoderadr = readValfromEEPROM(adr_decoderadr, minadr, minadr, maxadr);
+    // Festlegen der Winkel
+    // Startwinkel
 #ifdef armservo
     servoAngleStart = readValfromEEPROM(adr_angleStart, 5, minAngle, maxAngle);
 #endif
@@ -209,6 +219,7 @@ void setup()
 #ifdef formsignal
     servoAngleStart = readValfromEEPROM(adr_angleStart, 20, minAngle, maxAngle);
 #endif
+    // Stoppwinkel
 #ifdef armservo
     servoAngleStopp = readValfromEEPROM(adr_angleStopp, 74, minAngle, maxAngle);
 #endif
@@ -218,25 +229,41 @@ void setup()
 #ifdef formsignal
     servoAngleStopp = readValfromEEPROM(adr_angleStopp, 50, minAngle, maxAngle);
 #endif
-#ifdef armservo
-    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 74, minAngle, maxAngle);
-#endif
-#ifdef linearservo
-    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 115, minAngle, maxAngle);
-#endif
-#ifdef formsignal
-    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 50, minAngle, maxAngle);
-#endif
+    // Ausladung
     currEnd = readValfromEEPROM(adr_currEnd, 5, minEnd, maxEnd);
+#ifdef armservo
+    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 74, minAngle, maxAngle);
+#endif
+#ifdef linearservo
+    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 115, minAngle, maxAngle);
+#endif
+#ifdef formsignal
+    servoAngleStopp = readValfromEEPROM(adr_angleStopp, 50, minAngle, maxAngle);
+#endif
+    }
+    else {
+    // ota auf "FALSE" setzen
+    EEPROM.write(adr_ota, startWithoutOTA);
+    EEPROM.commit();
+     Connect2WiFiandOTA();
+    }
   }
   // ab hier werden die Anweisungen bei jedem Start durchlaufen
+  // IP-Adresse
+
+  for (uint8_t ip = 0; ip<4; ip++) {
+    IP[ip] = EEPROM.read(adr_IP0 + ip);
+  }
   // Flags
   got1CANmsg = false;
   SYS_CMD_Request = false;
+  START_OTA_Request = false;
+  SEND_IP_Request = false;
   statusPING = false;
   initialData2send = false;
   // Variablen werden gemäß der eingelsenen Werte gesetzt
   // evtl. werden auch die Servos verändert
+    // Verzögerung
 #ifdef armservo
     servoDelay = readValfromEEPROM(adr_SrvDel, stdservodelay, minservodelay, maxservodelay);
 #endif
@@ -249,7 +276,7 @@ void setup()
   for (uint8_t servo = 0; servo < num_servos; servo++)
   {
     // Status der Magnetartikel versenden an die Servos
-    Servos[servo].SetPosCurr((position)EEPROM.read(acc_state + servo));
+    Servos[servo].SetPosCurr((position)readValfromEEPROM(acc_state + servo, right, right, left));
     // Servos mit den PINs verbinden, initialisieren & Artikel setzen wie gespeichert
     Servos[servo].SetDelay(servoDelay);
     Servos[servo].SetAngle(currEnd, servoAngleStart, servoAngleStopp);
@@ -329,20 +356,13 @@ Byte 7	D-Byte 7	8 Bit Daten
 // für Weiche, nämlich turnout
 void calc_to_address()
 {
-  uint16_t baseaddress = (params.decoderadr - 1) * num_servos;
+  uint16_t baseaddress = (decoderadr - 1) * num_servos;
   for (uint8_t servo = 0; servo < num_servos; servo++)
   {
     uint16_t to_address = PROT + baseaddress + servo;
     // _to_addresss einlesen in lokales array
     Servos[servo].Set_to_address(to_address);
   }
-}
-
-// Mit testMinMax wird festgestellt, ob ein Wert innerhalb der
-// Grenzen von min und max liegt
-bool testMinMax(uint8_t oldval, uint8_t val, uint8_t min, uint8_t max)
-{
-  return (oldval != val) && (val >= min) && (val <= max);
 }
 
 // receiveKanalData dient der Parameterübertragung zwischen Decoder und CANguru-Server
@@ -377,19 +397,19 @@ void receiveKanalData()
   // Kanalnummer #2 - Decoderadresse
   case 2:
   {
-    oldval = params.decoderadr;
-    params.decoderadr = (opFrame[11] << 8) + opFrame[12];
-    if (testMinMax(oldval, params.decoderadr, minadr, maxadr))
+    oldval = decoderadr;
+    decoderadr = (opFrame[11] << 8) + opFrame[12];
+    if (testMinMax(oldval, decoderadr, minadr, maxadr))
     {
       // speichert die neue Adresse
-      EEPROM.write(adr_decoderadr, params.decoderadr);
+      EEPROM.write(adr_decoderadr, decoderadr);
       EEPROM.commit();
       // neue Adressen
       calc_to_address();
     }
     else
     {
-      params.decoderadr = oldval;
+      decoderadr = oldval;
     }
   }
   break;
@@ -474,12 +494,24 @@ void sendPING()
   opFrame[4] = 0x08;
   for (uint8_t i = 0; i < uid_num; i++)
   {
-    opFrame[i + 5] = params.uid_device[i];
+    opFrame[i + 5] = uid_device[i];
   }
   opFrame[9] = VERS_HIGH;
   opFrame[10] = VERS_LOW;
   opFrame[11] = DEVTYPE_SERVO >> 8;
   opFrame[12] = DEVTYPE_SERVO;
+  sendCanFrame();
+}
+
+// sendIP ist die Antwort der Decoder auf eine Abfrage der IP-Adresse
+void sendIP()
+{
+  SEND_IP_Request = false;
+  opFrame[1] = SEND_IP;
+  opFrame[4] = 0x08;
+  // IP-Adresse eintragen
+  for (uint8_t ip = 0; ip<4; ip++)
+    opFrame[5+ip] = IP[ip];
   sendCanFrame();
 }
 
@@ -532,22 +564,22 @@ void sendConfig()
 #ifdef armservo
   const uint8_t NumLinesKanal00 = 4 * Kanalwidth;
   uint8_t arrKanal00[NumLinesKanal00] = {
-      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, params.decoderadr,
-      /*2.1*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[0])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[0])),
-      /*2.2*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[1])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[1])),
-      /*2.3*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[2])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[2])),
-      /*2.4*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[3])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[3])),
+      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
+      /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
+      /*2.2*/ (uint8_t)highbyte2char(hex2dec(uid_device[1])), (uint8_t)lowbyte2char(hex2dec(uid_device[1])),
+      /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
+      /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
       /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
       /*4*/ 'S', 'e', 'r', 'v', 'o', (uint8_t)0, (uint8_t)0, (uint8_t)0};
 #endif
 #ifdef linearservo
   const uint8_t NumLinesKanal00 = 5 * Kanalwidth;
   uint8_t arrKanal00[NumLinesKanal00] = {
-      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, params.decoderadr,
-      /*2.1*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[0])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[0])),
-      /*2.2*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[1])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[1])),
-      /*2.3*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[2])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[2])),
-      /*2.4*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[3])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[3])),
+      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
+      /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
+      /*2.2*/ (uint8_t)highbyte2char(hex2dec(uid_device[1])), (uint8_t)lowbyte2char(hex2dec(uid_device[1])),
+      /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
+      /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
       /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
       /*4*/ 'L', 'i', 'n', 'e', 'a', 'r', '-', 'S',
       /*5*/ 'e', 'r', 'v', 'o', (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0};
@@ -555,11 +587,11 @@ void sendConfig()
 #ifdef formsignal
   const uint8_t NumLinesKanal00 = 5 * Kanalwidth;
   uint8_t arrKanal00[NumLinesKanal00] = {
-      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, params.decoderadr,
-      /*2.1*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[0])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[0])),
-      /*2.2*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[1])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[1])),
-      /*2.3*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[2])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[2])),
-      /*2.4*/ (uint8_t)highbyte2char(hex2dec(params.uid_device[3])), (uint8_t)lowbyte2char(hex2dec(params.uid_device[3])),
+      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
+      /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
+      /*2.2*/ (uint8_t)highbyte2char(hex2dec(uid_device[1])), (uint8_t)lowbyte2char(hex2dec(uid_device[1])),
+      /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
+      /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
       /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
       /*4*/ 'F', 'o', 'r', 'm', 's', 'i', 'g', 'n',
       /*5*/ 'a', 'l', 0, 0, 0, 0, 0, 0};
@@ -574,7 +606,7 @@ void sendConfig()
   const uint8_t NumLinesKanal02 = 4 * Kanalwidth;
   uint8_t arrKanal02[NumLinesKanal02] = {
       // #2 - WORD immer Big Endian, wie Uhrzeit
-      /*1*/ Kanal02, 2, 0, minadr, 0, maxadr, 0, params.decoderadr,
+      /*1*/ Kanal02, 2, 0, minadr, 0, maxadr, 0, decoderadr,
       /*2*/ 'M', 'o', 'd', 'u', 'l', 'a', 'd', 'r',
       /*3*/ 'e', 's', 's', 'e', 0, '1', 0, (maxadr / 100) + '0',
       /*4*/ (maxadr - (uint8_t)(maxadr / 100) * 100) / 10 + '0', (maxadr - (uint8_t)(maxadr / 10) * 10) + '0', 0, 'A', 'd', 'r', 0, 0};
@@ -666,7 +698,7 @@ void sendConfig()
   opFrame[4] = 0x06;
   for (uint8_t i = 0; i < 4; i++)
   {
-    opFrame[i + 5] = params.uid_device[i];
+    opFrame[i + 5] = uid_device[i];
   }
   opFrame[9] = CONFIGURATION_Status_Index;
   opFrame[10] = paket;
@@ -698,6 +730,17 @@ void loop()
     if (SYS_CMD_Request)
     {
       receiveKanalData();
+    }
+    // Modul wird neu gestartet und wartet anschließend auf neue Software (OTA)
+    if (START_OTA_Request) {
+      // 
+      EEPROM.write(adr_ota, startWithOTA);
+      EEPROM.commit();
+      ESP.restart();
+    }
+    // die eigene IP-Adresse wird über die Bridge an den Server zurück geliefert
+    if (SEND_IP_Request) {
+      sendIP();
     }
     // Parameterwerte an den CANguru-Server liefern
     if (CONFIG_Status_Request)

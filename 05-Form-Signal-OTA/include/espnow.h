@@ -194,13 +194,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     got1CANmsg = true;
     // alles Weitere wird in loop erledigt
   break;
-  // IP-Adresse rückmelden
-  case SEND_IP:
-      SEND_IP_Request = true;
-      got1CANmsg = true;
-      // alles Weitere wird in loop erledigt
-  break;
-  // config
   case CONFIG_Status:
   {
     CONFIG_Status_Request = true;
@@ -210,6 +203,13 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     got1CANmsg = true;
   }
   break;
+  // IP-Adresse rückmelden
+  case SEND_IP:
+      SEND_IP_Request = true;
+      got1CANmsg = true;
+      // alles Weitere wird in loop erledigt
+  break;
+  // config
   case SYS_CMD:
   {
     switch (opFrame[9]) {
@@ -285,7 +285,7 @@ void addMaster()
   master.channel = WIFI_CHANNEL; // pick a channel
   master.encrypt = 0;            // no encryption
   //Add the master node to this slave node
-  master.ifidx = ESP_IF_WIFI_AP;
+  master.ifidx = (wifi_interface_t) ESP_IF_WIFI_AP;
   //Add the remote master node to this slave node
   if (esp_now_add_peer(masterNode) == ESP_OK)
   {

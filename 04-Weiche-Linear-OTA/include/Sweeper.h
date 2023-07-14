@@ -91,7 +91,6 @@ private:
   int rightpos;  // 5 je kleiner desto weiter nach rechts
   int maxendpos; // * grdinmillis;
   enumway way;
-  uint16_t wakeuptimer;
   position wakeupdir;
 #ifdef formsignal
   uint8_t bob;

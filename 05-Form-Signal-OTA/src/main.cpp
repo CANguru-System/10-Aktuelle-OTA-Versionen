@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include "CANguruDefs.h"
+#include "CARguruDefs.h"
 #include "EEPROM.h"
 #include "esp32-hal-ledc.h"
 #include "Sweeper.h"
@@ -112,13 +112,13 @@ void setup()
 {
   Serial.begin(bdrMonitor);
 #ifdef armservo
-  Serial.println("\r\n\r\nCANguru - Weiche");
+  log_i("\r\n\r\nCANguru - Weiche");
 #endif
 #ifdef linearservo
-  Serial.println("\r\n\r\nCANguru - Weiche - Linear-Servo");
+  log_i("\r\n\r\nCANguru - Weiche - Linear-Servo");
 #endif
 #ifdef formsignal
-  Serial.println("\r\n\r\nCANguru - Formsignal");
+  log_i("\r\n\r\nCANguru - Formsignal");
 #endif
 
   // der Decoder strahlt mit seiner Kennung
@@ -132,7 +132,7 @@ void setup()
   // die EEPROM-Library wird gestartet
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    Serial.println("Failed to initialise EEPROM");
+    log_i("Failed to initialise EEPROM");
   }
   uint8_t setup_todo = EEPROM.read(adr_setup_done);
   if (setup_todo != setup_done)
