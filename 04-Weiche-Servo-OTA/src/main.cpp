@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include "CARguruDefs.h"
+#include "CANguruDefs.h"
 #include "EEPROM.h"
 #include "esp32-hal-ledc.h"
 #include "Sweeper.h"

@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include "CARguruDefs.h"
+#include "CANguruDefs.h"
 #include "EEPROM.h"
 #include "esp32-hal-ledc.h"
 #include "Sweeper.h"
@@ -111,6 +111,7 @@ void generateHash(uint8_t offset);
 void setup()
 {
   Serial.begin(bdrMonitor);
+  delay(500);
 #ifdef armservo
   log_i("\r\n\r\nCANguru - Weiche");
 #endif
