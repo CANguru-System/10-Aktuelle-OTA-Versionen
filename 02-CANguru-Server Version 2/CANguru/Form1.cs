@@ -1287,6 +1287,7 @@ namespace CANguruX
                                     break;
                                 case 0x89:
                                     gettingConnectionTimer.Enabled = false;
+                                    gettingConnectionTimer.Stop();
                                     trying2Connct2BridgeTimer.Enabled = false;
                                     this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connected!"));
                                     Cnames.IP_CAN = remoteIPEndPoint.Address.ToString();

@@ -119,3 +119,4 @@ C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Versio
 C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.CopyComplete
 C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.exe
 C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.pdb
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Release\CANguru.csproj.AssemblyReference.cache
