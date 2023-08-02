@@ -1119,7 +1119,7 @@ namespace CANguruX
                                     if (content[4] == 0x08)
                                     {
                                         bool ffound = false;
-                                        byte[] arrshortname = new byte[Cnames.shortnameLng2transfer]; // plus 1 Zeichen wg. /0 am Ende
+                                        byte[] arrshortname = new byte[Cnames.shortnameLng2transfer]; // plus 1 Zeichen wg. /0 am Ende NEIN!
                                         Array.Copy(content, 5, arrshortname, 0, Cnames.shortnameLng2transfer);
                                         string shortname = System.Text.Encoding.Default.GetString(arrshortname);
                                         byte str = 0;
@@ -1167,7 +1167,8 @@ namespace CANguruX
                                         {
                                             for (str = 0; str < Cnames.cntCS2Files; str++)
                                             {
-                                                if (Cnames.cs2Files[str, 0].Contains(shortname))
+                                                char[] cs2File = Cnames.cs2Files[str, 0].ToCharArray(0, 4);
+                                                if ((arrshortname[0] == cs2File[0]) && (arrshortname[1] == cs2File[1]) && (arrshortname[2] == cs2File[2]) && (arrshortname[3] == cs2File[3]))
                                                 {
                                                     // Langname gefunden, gibt es die zugehörige Datei auch?
                                                     fileName = Cnames.cs2Files[str, 1];

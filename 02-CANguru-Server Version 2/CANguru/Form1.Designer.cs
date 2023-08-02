@@ -658,6 +658,7 @@
             // 
             // Configuration
             // 
+            this.Configuration.AutoScroll = true;
             this.Configuration.Controls.Add(this.fileSaveButton);
             this.Configuration.Controls.Add(this.resetButton);
             this.Configuration.Controls.Add(this.deviceIP);
@@ -797,7 +798,7 @@
             this.Controls.Add(this.tabControl1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "CANguru-Server 2.3";
+            this.Text = "CANguru-Server 2.4";
             this.tabControl1.ResumeLayout(false);
             this.Telnet.ResumeLayout(false);
             this.groupCommand.ResumeLayout(false);

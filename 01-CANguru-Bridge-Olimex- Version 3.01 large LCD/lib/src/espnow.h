@@ -76,11 +76,12 @@ enum patterns
   M_FINISHCONFIG,
   M_DOCOMPRESS,
   M_DONOTCOMPRESS,
-  M_GETCONFIG1,
-  M_GETCONFIG2,
+  M_GETCONFIG,
+  M_GETCONFIG_R,
   M_SIGNAL,
   M_CNTLOKBUFFER,
-  M_SENDLOKBUFFER
+  M_SENDLOKBUFFER,
+  M_CALL4CONNECTISDONE
 };
 
 // Kommunikationslinien
@@ -128,7 +129,7 @@ void espInit();
 // Kommunikationsroutine zu den CAN-Komponenten (momentan nur die Gleisbox)
 void proc2CAN(uint8_t *buffer, CMD dir);
 // Laden der lokomotive.cs2-Datei
-void reveiveLocFile();
+void receiveLocFile();
 // Übertragung von Frames zum CANguru-Server zur dortigen Ausgabe
 void printUDPCAN(uint8_t *buffer, CMD dir);
 // Ausgaberoutine

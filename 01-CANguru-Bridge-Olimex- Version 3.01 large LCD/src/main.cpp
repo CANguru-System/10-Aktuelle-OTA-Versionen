@@ -10,6 +10,7 @@
 #include <ETH.h>
 #include <Adafruit_GFX.h>
 #include <ESPAsyncWebServer.h>
+#include "SPIFFS.h"
 
 enum enum_canguruStatus
 {
@@ -28,6 +29,12 @@ enum_canguruStatus canguruStatus;
 // buffer for receiving and sending data
 uint8_t M_PATTERN[] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 uint8_t lastmfxUID[] = {0x00, 0x00, 0x00, 0x00};
+
+#define httpBufferLength 0x03FF
+uint8_t httpBuffer[httpBufferLength + 10];
+File locofile;
+
+String lokofileName = "lokomotive.cs2";
 
 uint8_t cntLoks;
 struct LokBufferType
@@ -48,6 +55,7 @@ bool allLoksAreReported;
 byte cvIndex;
 
 canguruETHClient telnetClient;
+const uint8_t indent = 10;
 
 // Forward declarations
 //
@@ -223,7 +231,7 @@ void produceFrame(patterns noFrame)
     M_PATTERN[1] = DoNotCompress;
     M_PATTERN[4] = 0x00;
     break;
-  case M_GETCONFIG1:
+  case M_GETCONFIG:
     M_PATTERN[1] = LoadCS2Data;
     M_PATTERN[4] = 0x08;
     M_PATTERN[5] = 0x6C;
@@ -231,7 +239,7 @@ void produceFrame(patterns noFrame)
     M_PATTERN[7] = 0x6B;
     M_PATTERN[8] = 0x73;
     break;
-  case M_GETCONFIG2:
+  case M_GETCONFIG_R:
     M_PATTERN[1] = LoadCS2Data_R;
     M_PATTERN[4] = 0x08;
     M_PATTERN[5] = 0x6C;
@@ -249,6 +257,10 @@ void produceFrame(patterns noFrame)
   case M_SENDLOKBUFFER:
     M_PATTERN[1] = sendLokBuffer;
     M_PATTERN[4] = 0x01;
+    break;
+  case M_CALL4CONNECTISDONE:
+    M_PATTERN[1] = CALL4CONNECT + 1;
+    M_PATTERN[4] = 0x00;
     break;
   }
 }
@@ -329,7 +341,7 @@ void sendToServer(uint8_t *buffer, CMD cmd)
   UDPToServer.write(buffer, CAN_FRAME_SIZE);
   UDPToServer.endPacket();
   buffer[0] = 0x00;
-  log_d("sendToServer0: %x", buffer[0x01]);
+  log_d("sendToServer: %x", buffer[0x01]);
 }
 
 void msgStartScanning()
@@ -359,6 +371,191 @@ void sendOutTCPfromCAN(uint8_t *buffer)
 //    printCANFrame(buffer, fromCAN2TCP);
 //    print_can_frame(3, buffer);
 }*/
+
+// Anfrage, wieviele Daten sind zu übertragen
+uint32_t getDataSize()
+{
+  uint8_t UDPbuffer[] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  //
+  produceFrame(M_GETCONFIG);
+  // to Gateway
+  sendToServer(M_PATTERN, toUDP);
+  //  sendOutUDP(GW, M_PATTERN);
+  uint16_t packetSize = 0;
+  // maximal 2 Sekunden warten
+  while (packetSize == 0)
+  {
+    yield();
+    packetSize = UDPFromServer.parsePacket();
+  }
+  if (packetSize)
+  {
+    // read the packet into packetBufffer
+    UDPFromServer.read(UDPbuffer, CAN_FRAME_SIZE);
+    if (UDPbuffer[0x01] == GETCONFIG_RESPONSE)
+    {
+      // size - crc
+      // byte 5 bis 8 ist die Anzahl der zu übertragenden bytes
+      // byte 9 und 10 ist der crc-Wert
+      // crc ist für uncompressed immer null
+      //
+      uint32_t cF = 0;
+      memcpy(&cF, &UDPbuffer[5], 4);
+      log_d("getDataSize packetSize: %x%x%x%x", UDPbuffer[5], UDPbuffer[6], UDPbuffer[7], UDPbuffer[8]);
+      return ntohl(cF);
+    }
+  }
+  return 0;
+}
+
+// Anfordrung an den CANguru-Server zur Übertragung der lokomotive.cs2-Datei
+void ask4CS2Data(byte lineNo)
+{
+  const uint8_t shortnameLng2transfer = 5;
+  //
+  produceFrame(M_GETCONFIG_R);
+  // LoadCS2Data_R  0x57
+  memcpy(&M_PATTERN[0x05], "loks   ", shortnameLng2transfer);
+  M_PATTERN[0x0A] = lineNo;
+  M_PATTERN[0x0B] = httpBufferLength & 0x00FF;
+  M_PATTERN[0x0C] = (httpBufferLength & 0xFF00) >> 8;
+  // 5 6 7 8 9 A B C
+  // 1 2 3 4 5 Y X X
+  // Y - lineNo
+  // XX - Pufferlänge
+  // to Gateway
+  sendToServer(M_PATTERN, toUDP);
+}
+
+// Übertragung der lokomotive.cs2-Datei vom CANguru-Server
+// die CANguru-Bridge hält diese Daten und leitet sie bei Anfrage an
+// den WDP weiter
+void receiveLocFile()
+{
+  String fName = "/" + lokofileName;
+  produceFrame(M_DONOTCOMPRESS);
+  sendToServer(M_PATTERN, toUDP);
+  // ruft Daten ab
+  uint32_t cntFrame = getDataSize();
+  log_d("datsize: %d", cntFrame);
+  if (cntFrame == 0)
+  {
+    locofileread = false;
+    return;
+  }
+  if (SPIFFS.exists(fName))
+  {
+    if (!SPIFFS.remove(fName))
+      log_d("Did NOT remove %s", lokofileName);
+  }
+  locofile = SPIFFS.open(fName, FILE_WRITE);
+  // Configdaten abrufen
+  uint16_t packetSize = 0;
+  uint16_t inBufferCnt = 0;
+  byte lineNo = 0;
+  //
+  locofileread = true;
+  while (inBufferCnt < cntFrame)
+  {
+    ask4CS2Data(lineNo);
+    packetSize = 0;
+    while (packetSize == 0)
+    {
+      yield();
+      packetSize = UDPFromServer.parsePacket();
+    }
+    if (packetSize)
+    {
+      // read the packet into packetBuffer
+      // from gateway via udp
+      UDPFromServer.read(httpBuffer, packetSize);
+      uint16_t pOUT = 0;
+      for (uint16_t pIN = 0; pIN < packetSize; pIN++)
+      {
+        if (httpBuffer[pIN] != 0x0D)
+        {
+          httpBuffer[pOUT] = httpBuffer[pIN];
+          pOUT++;
+        }
+      }
+      httpBuffer[packetSize] = 0x00;
+      lineNo++;
+      // write the packet to local file
+      if (!locofile.write(httpBuffer, pOUT))
+      {
+        log_d("%s write failed", lokofileName);
+        locofile.close();
+        locofileread = false;
+        return;
+      }
+      inBufferCnt += packetSize;
+    }
+  }
+  locofile.close();
+}
+
+void onRequest(AsyncWebServerRequest *request)
+{
+  for (uint8_t p = 0; p < maxPackets; p++)
+    if (arrayURL[p] == "")
+    {
+      arrayURL[p] = request->url();
+      arrayRequest[p] = request;
+      cntURLUsed++;
+      break;
+    }
+}
+
+void analyseHTTP()
+{
+  if (cntURLUsed == 0)
+    return;
+  bool urlfound;
+  bool ffound;
+  uint8_t fNmbr = 0;
+  String currentLine;
+  AsyncWebServerRequest *request;
+  urlfound = false;
+  for (uint8_t p = 0; p < maxPackets; p++)
+    if (arrayURL[p] != "")
+    {
+      currentLine = arrayURL[p];
+      cntURLUsed--;
+      arrayURL[p] = "";
+      request = arrayRequest[p];
+      urlfound = true;
+      break;
+    }
+  if (urlfound == false)
+    return;
+  ffound = false;
+  currentLine.toLowerCase();
+  if (currentLine.indexOf(lokofileName) > 0)
+  {
+    ffound = true;
+  }
+  if (ffound)
+  {
+    set_SYSseen(true);
+    if (initialDataAlreadySent == false)
+    {
+      initialDataAlreadySent = true;
+      uint8_t no_slv = get_slaveCnt();
+      for (uint8_t slv = 0; slv < no_slv; slv++)
+      {
+        set_initialData2send(slv);
+      }
+    }
+    receiveLocFile();
+    String fName = "/" + lokofileName;
+    telnetClient.printTelnet(true, "Sendet per HTTP: " + request->url());
+    request->send(SPIFFS, fName, "text/html");
+    return;
+  }
+  // Handle Unknown Request
+  request->send(404, "text/plain", "Not found: " + currentLine);
+  telnetClient.printTelnet(true, "Not found: " + currentLine, indent);
+}
 
 uint8_t getLocID()
 {
@@ -566,7 +763,7 @@ void proc_fromServer2CANandClnt()
     // read the packet into packetBufffer
     UDPFromServer.read(UDPbuffer, CAN_FRAME_SIZE);
     log_d("fromGW2CANandClnt: %X", UDPbuffer[0x01]);
-    // send received data via usb and CAN
+    // send received data via ESPNOW and CAN
     switch (UDPbuffer[0x1])
     {
     case SYS_CMD:
@@ -593,10 +790,10 @@ void proc_fromServer2CANandClnt()
       sendToServer(M_PATTERN, fromCAN);
       break;
     case MfxProc_R:
-      /*      // there is a new file lokomotive.cs2 to send
-            produceFrame(M_SIGNAL);
-            sendToServer(M_PATTERN, fromCAN);
-            receiveLocFile(0, false);*/
+      // there is a new file lokomotive.cs2 to send
+      produceFrame(M_SIGNAL);
+      sendToServer(M_PATTERN, fromCAN);
+      receiveLocFile();
       break;
     // PING
     case PING:
@@ -674,7 +871,12 @@ void proc_fromWDP2CAN()
     UDPFromWDP.read(UDPbuffer, CAN_FRAME_SIZE);
     // send received data via usb and CAN
     if (UDPbuffer[0x01] == SYS_CMD && UDPbuffer[0x09] == SYS_GO)
+    {
+      // Meldung an die Clients, dass WDP gestartet wurde
+      produceFrame(M_CALL4CONNECTISDONE);
+      proc2Clnts(M_PATTERN, fromGW2Clnt);
       set_SYSseen(true);
+    }
     proc2CAN(UDPbuffer, fromWDP2CAN);
     log_d("fromServer2CAN: %X", UDPbuffer[0x01]);
     switch (UDPbuffer[0x01])
@@ -736,10 +938,10 @@ void setup()
   log_i("\r\n\r\nC A N g u r u - B r i d g e - %s", CgVersionnmbr);
   log_i("\n on %s", ARDUINO_BOARD);
   log_i("CPU Frequency = %d Mhz", F_CPU / 1000000);
-//  log_e("ERROR!");
-//  log_d("VERBOSE");
-//  log_w("WARNING");
-//  log_i("INFO");
+  //  log_e("ERROR!");
+  //  log_d("VERBOSE");
+  //  log_w("WARNING");
+  //  log_i("INFO");
   drawCircle = false;
   // das Display wird initalisiert
   initDisplayLCD28();
@@ -787,6 +989,23 @@ void setup()
   // start the TCP-server
   TCPINSYS.begin();
   //
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  if (!SPIFFS.format())
+  {
+    Serial.println("An Error has occurred while formatting SPIFFS");
+    return;
+  }
+  //
+  // Catch-All Handlers
+  // Any request that can not find a Handler that canHandle it
+  // ends in the callbacks below.
+  AsyncWebSrvr.onNotFound(onRequest);
+  // start the http-server
+  AsyncWebSrvr.begin();
 }
 
 // Meldung, dass SYS gestartet werden kann
@@ -858,6 +1077,13 @@ void loop()
     break;
   case startGleisbox:
     log_d("startGleisbox");
+    delay(100);
+    receiveLocFile();
+    if (locofileread)
+      telnetClient.printTelnet(true, "Read lokomotive.cs2");
+    else
+      telnetClient.printTelnet(true, "Unable to read lokomotive.cs2");
+    telnetClient.printTelnet(true, "");
     delay(5);
     send_start_60113_frames();
     // Empfangen über ESNOW werden registriert
@@ -911,6 +1137,7 @@ void loop()
     proc_fromCAN2WDPandServer();
     proc_fromWDP2CAN();
     fillTheCircle();
+    analyseHTTP();
     break;
   default:
     break;
