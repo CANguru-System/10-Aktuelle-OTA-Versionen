@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "147fec52-8099-49f2-b5b4-f2828e25aa8d": {
+      "ProjectGuid": "147fec52-8099-49f2-b5b4-f2828e25aa8d",
+      "DisplayName": "CANguru",
+      "ColorIndex": 0
+    }
+  },
+  "NextColorIndex": 1
+}
