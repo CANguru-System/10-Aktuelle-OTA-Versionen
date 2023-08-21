@@ -264,6 +264,7 @@ namespace CANguruX
                 // Hook up the Elapsed event for the timer. 
                 trying2Connct2BridgeTimer.Elapsed += trying2Connct2Bridge;
                 trying2Connct2BridgeTimer.AutoReset = true;
+                trying2Connct2BridgeTimer.Enabled = true;
                 // and start the timer
                 trying2Connct2BridgeTimer.Start();
                 this.Load += Form1_Load;
@@ -625,13 +626,11 @@ namespace CANguruX
             /*01*/    "CAN magic 60113 start",
             /*02*/    "CAN enabled all loco protos",
             /*03*/    "Start Train-Application",
-            /*04*/    "Alle Decoder gelesen",
-            /*05*/    " -- No Slaves!",
-            /*06*/    "replied CAN ping (fake member)",
-            /*07*/    "Start scanning for slaves ... ",
-            /*08*/    "Meldeüunkt0",
-            /*09*/    "Meldeüunkt1",
-            /*10*/    "Meldeüunkt2"
+            /*04*/    " -- No Slaves!",
+            /*05*/    "replied CAN ping (fake member)",
+            /*06*/    "Meldeüunkt0",
+            /*07*/    "Meldeüunkt1",
+            /*08*/    "Meldeüunkt2"
             };
             return messages[msg];
         }
@@ -748,10 +747,6 @@ namespace CANguruX
                                 res += datachars[i];
                         }
                         return "Datei angefordert - " + res;
-                    case 0x90:
-                        return "Abfrage, wieviele Loks sind gespeichert?";
-                    case 0x92:
-                        return "Sende Lok-Daten";
                     // die folgenden Meldungen werden unterdrückt
                     // System
                     case 0x00:
@@ -835,7 +830,6 @@ namespace CANguruX
             byte[] pattern = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             byte[] MFX_LOCID = { 0x00, 0x50, 0x03, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             byte[] LOK_BUFFER = { 0x00, 0x93, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            byte[] RECEIVED_MSG = { 0x00, 0xFF, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             while (true)
             {
                 IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, Cnames.portinCAN);
@@ -859,18 +853,6 @@ namespace CANguruX
                         else
                         {
                             ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd, content));
-                            // Quittung
-                            if (cmd == CMD.toGW)
-                            {
-                                RECEIVED_MSG[5] = content[1];
-                                Task t = Task.Run(() => {
-                                    CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
-                                    CANClient.Send(RECEIVED_MSG, Cnames.lngFrame);
-                                });
-                                t.Wait();
-
-                             //   Task.Delay(50).Wait();
-                            }
                             // Das Programm reagiert auf die Erkennung 
                             switch (content[1])
                             {
@@ -1197,6 +1179,7 @@ namespace CANguruX
                                         }
                                         if (ffound == true)
                                         {
+                                            ChangeMyText(this.TelnetComm, doMsg4TctWindow(cmd /*CMD.fromGW*/, content));
                                             byte[] tmpbyte2 = new byte[2];
                                             byte[] tmpbyte4 = new byte[4];
                                             Int16 crc;
@@ -1250,6 +1233,7 @@ namespace CANguruX
                                             // byte 9 und 10 ist der crc-Wert
                                             // crc ist für uncompressed immer null
                                             Array.Copy(tmpbyte2, 0, GETCONFIG_RESPONSE, 9, 2);
+                                            //                                        ChangeMyText(this.TelnetComm, doMsg4TctWindow(CMD.fromGW, GETCONFIG_RESPONSE));
                                             CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
                                             //#define GETCONFIG_RESPONSE LoadCS2Data_R + 0x01     // 0x58
                                             CANClient.Send(GETCONFIG_RESPONSE, GETCONFIG_RESPONSE.Length);
@@ -1302,8 +1286,9 @@ namespace CANguruX
                                     }
                                     break;
                                 case 0x89:
+                                    gettingConnectionTimer.Enabled = false;
                                     gettingConnectionTimer.Stop();
-                                    trying2Connct2BridgeTimer.Stop();
+                                    trying2Connct2BridgeTimer.Enabled = false;
                                     this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connected!"));
                                     Cnames.IP_CAN = remoteIPEndPoint.Address.ToString();
                                     this.tbConnectAdr.Invoke(new MethodInvoker(() => this.tbConnectAdr.Text = Cnames.IP_CAN));
@@ -1481,8 +1466,8 @@ namespace CANguruX
             if (result == DialogResult.Yes)
             {
                 // Aufräumen
-                trying2Connct2BridgeTimer.Stop();
-                timeTimer.Stop();
+                trying2Connct2BridgeTimer.Enabled = false;
+                timeTimer.Enabled = false;
                 ini.RemoveAllSections();
                 ini.AddSection("IP-address").AddKey("IPCAN").Value = Cnames.IP_CAN;
                 ConfigStream.setCounter((byte)(numCounter.Value));
@@ -1662,8 +1647,6 @@ namespace CANguruX
         {
             byte[] M_SEND_IP = { 0x00, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             Cnames.IP_CAN = "255.255.255.255";
-            if (gettingConnectionTimer.Enabled == false)
-                return;
             try
             {
                 CANClient.Connect(Cnames.IP_CAN, Cnames.portoutCAN);
@@ -1678,7 +1661,7 @@ namespace CANguruX
             {
                 this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Enabled = true));
                 this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Text = "Connect!"));
-                gettingConnectionTimer.Stop();
+                gettingConnectionTimer.Enabled = false;
             }
         }
 
@@ -1688,7 +1671,8 @@ namespace CANguruX
             gettingConnectionTimer = new System.Timers.Timer(25);
             // Hook up the Elapsed event for the timer. 
             gettingConnectionTimer.Elapsed += gettingConnection;
-            gettingConnectionTimer.Start();
+            gettingConnectionTimer.AutoReset = true;
+            gettingConnectionTimer.Enabled = true;
             elapsedmillis4Connection = 0;
             this.buttonConnect.Invoke(new MethodInvoker(() => this.buttonConnect.Enabled = false));
         }

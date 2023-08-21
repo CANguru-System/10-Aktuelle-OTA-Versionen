@@ -625,7 +625,7 @@ namespace CANguruX
             /*01*/    "CAN magic 60113 start",
             /*02*/    "CAN enabled all loco protos",
             /*03*/    "Start Train-Application",
-            /*04*/    "Alle Decoder gelesen",
+            /*04*/    "Alle Doder gelesen",
             /*05*/    " -- No Slaves!",
             /*06*/    "replied CAN ping (fake member)",
             /*07*/    "Start scanning for slaves ... ",

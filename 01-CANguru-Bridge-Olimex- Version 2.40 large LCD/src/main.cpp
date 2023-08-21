@@ -599,9 +599,8 @@ void proc_fromUDP2CAN()
     case PING_R:
       if ((UDPbuffer[11] == 0xEE) && (UDPbuffer[12] == 0xEE))
       {
-        proc2CAN(UDPbuffer, fromUDP2CAN);
         delay(100);
-        memcpy(UDPbuffer, M_PING_RESPONSEx, 5);
+        memcpy(&UDPbuffer, &M_PING_RESPONSEx, 5);
         sendOutUDP(UDPbuffer);
         //        proc2CAN(UDPbuffer, fromUDP2CAN);
         delay(100);
@@ -643,6 +642,7 @@ void proc_fromTCPServer()
   uint16_t availableChars = TCPclient.available();
   if (availableChars > 0)
   {
+    log_d("proc_fromTCPServer");
     TCPbuffer = new uint8_t[availableChars]; // Allocate size ints and save ptr in buffer
   }
   while (availableChars)
@@ -957,6 +957,7 @@ void analyseHTTP()
     else
       // sonst
       fName = "/" + cs2Files[fNmbr][1];
+    log_d("http: %s", fName);
     telnetClient.printTelnet(true, "Sendet per HTTP: " + request->url());
     request->send(LittleFS, fName, "text/html");
     return;
@@ -1054,12 +1055,12 @@ void setup()
   //
   if (!LittleFS.begin(true))
   {
-    Serial.println("An Error has occurred while mounting LittleFS");
+    log_e("An Error has occurred while mounting LittleFS");
     return;
   }
   if (!LittleFS.format())
   {
-    Serial.println("An Error has occurred while formatting LittleFS");
+    log_e("An Error has occurred while formatting LittleFS");
     return;
   }
   //
@@ -1237,10 +1238,11 @@ void receiveLocFile(uint8_t f, bool cmprssd)
     fName = "/" + cs2Files[f][1];
   if (cmprssd)
     fName += "cmprssd";
+  log_d("LittleFS: %s", fName);
   if (LittleFS.exists(fName))
   {
     if (!LittleFS.remove(fName))
-      Serial.println("Did NOT remove " + fName);
+      log_e("Did NOT remove %s", fName);
   }
   locofile = LittleFS.open(fName, FILE_WRITE);
   // Configdaten abrufen
@@ -1277,7 +1279,7 @@ void receiveLocFile(uint8_t f, bool cmprssd)
       // write the packet to local file
       if (!locofile.write(httpBuffer, pOUT))
       {
-        Serial.println(fName + " write failed");
+        log_e( "%s write failed", fName);
         locofile.close();
         locofileread = false;
         return;
@@ -1334,6 +1336,7 @@ void sendTCPConfigData(uint8_t f, uint8_t *tcb)
   else
     fName = "/" + cs2Files[f][1];
   fName += "cmprssd";
+  log_d("TCP: ", fName);
   locofile = LittleFS.open(fName);
   if (!locofile)
   {
@@ -1513,6 +1516,7 @@ void goSYS()
 {
   printMSG(StartTrainApplication);
   drawCircle = true;
+  log_i("Server has started!");
 }
 
 void proc_start_lokBuffer()
