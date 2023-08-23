@@ -18,7 +18,6 @@
 
 uint8_t slaveCnt;
 uint8_t slaveCurr;
-decoderStruct gate;
 uint8_t nbrSlavesAreReady;
 
 // willkürlich festgelegte MAC-Adresse
@@ -54,9 +53,7 @@ void cpySlaveInfo(slaveInfoStruct dest, slaveInfoStruct source)
 {
   dest.slave = source.slave;
   dest.peer = source.peer;
-  dest.initialData2send = source.initialData2send;
   dest.no = source.no;
-  dest.decoderType = source.decoderType;
 }
 
 // ESPNow wird initialisiert
@@ -65,7 +62,6 @@ void espInit()
   cntConfig = 0;
   slaveCnt = 0;
   slaveCurr = 0;
-  gate.isType = false;
   initVariant();
   if (esp_now_init() == ESP_OK)
   {
@@ -95,29 +91,6 @@ bool get_SYSseen()
 void set_SYSseen(bool SYS)
 {
   SYSseen = SYS;
-}
-
-// fordert einen Slave dazu auf, Anfangsdaten bekannt zu geben
-void set_initialData2send(uint8_t slave)
-{
-//%  slaveInfo[slave].initialData2send = true;
-}
-
-// quittiert, dass Anfangsdaten übertragen wurden
-void reset_initialData2send(uint8_t slave)
-{
-//%  slaveInfo[slave].initialData2send = false;
-}
-
-// gibt zurück, ob noch Anfangsdaten von einem Slave zu liefern sind
-bool get_initialData2send(uint8_t slave)
-{
-  return true; //% slaveInfo[slave].initialData2send;
-}
-// gibt zurück, um welchen Decodertypen es sich handelt
-uint8_t get_decoder_type(uint8_t no)
-{
-  return slaveInfo[no].decoderType;
 }
 
 // liefert die Struktur slaveInfo zurück
@@ -194,7 +167,6 @@ void Scan4Slaves()
           slaveInfo[slaveCnt].slave.channel = WIFI_CHANNEL;
           slaveInfo[slaveCnt].slave.encrypt = 0;
           slaveInfo[slaveCnt].peer = &slaveInfo[slaveCnt].slave;
-          slaveInfo[slaveCnt].initialData2send = false;
           slaveInfo[slaveCnt].no = slaveCnt;
           slaveCnt++;
         }
@@ -367,7 +339,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
   uint8_t Clntbuffer[CAN_FRAME_SIZE]; // buffer to hold incoming packet,
   memcpy(Clntbuffer, data, data_len);
-  log_d("Clntbuffer: %x", data_len);
   if (data_len == macLen)
   {
   // Rückmeldung der slaves, nachdem sie ihre UID festgelegt haben
@@ -375,7 +346,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     nbrSlavesAreReady++;
     return;
   }
-  log_d("OnDataRecv0: %x", data[0x01]);
   switch (data[0x01])
   {
   case PING_R:
@@ -387,16 +357,15 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
       {
         m[cnt] = mac_addr[cnt];
       }
-      if (macIsEqual(slaveInfo[s].slave.peer_addr, m))
+/*      if (macIsEqual(slaveInfo[s].slave.peer_addr, m))
       {
-        slaveInfo[s].decoderType = data[12];
         if (data[12] == DEVTYPE_GATE)
         {
           gate.isType = true;
           gate.decoder_no = s;
           break;
         }
-      }
+      }*/
     }
     break;
   case CONFIG_Status_R:
@@ -420,11 +389,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
     {
       // an SYS
       sendToWDP(Clntbuffer);
-      // bei Schranken auch an diesen Decoder
-      if (gate.isType)
-      {
-        sendTheData(gate.decoder_no, Clntbuffer, CAN_FRAME_SIZE);
-      }
     }
     break;
   case sendCurrAmp:
@@ -436,7 +400,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
   default:
     // send received data via Ethernet to GW and evtl to SYS
     sendToServer(Clntbuffer, fromClnt);
-  log_d("OnDataRecv1: %x", data[0x01]);
     if (SYSseen)
     {
       sendToWDP(Clntbuffer);

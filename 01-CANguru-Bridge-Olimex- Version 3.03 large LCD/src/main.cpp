@@ -52,7 +52,7 @@ LokBufferType *LokBuffer = NULL;
 const uint8_t maxPackets = 30;
 bool bLokDiscovery;
 
-bool initialDataAlreadySent;
+//% bool initialDataAlreadySent;
 byte locid;
 bool scanningFinished;
 bool allLoksAreReported;
@@ -916,7 +916,7 @@ void proc_fromWDP2CAN()
       sendToWDP(M_PATTERN);
       log_d("PING");
       set_SYSseen(true);
-      if (initialDataAlreadySent == false)
+/*      if (initialDataAlreadySent == false)
       {
         initialDataAlreadySent = true;
         uint8_t no_slv = get_slaveCnt();
@@ -924,7 +924,7 @@ void proc_fromWDP2CAN()
         {
           set_initialData2send(slv);
         }
-      }
+      }*/
       //      produceFrame(M_CAN_PING_CS2_2);
       //      sendToWDP(M_PATTERN);
       set_SYSseen(true);
@@ -1000,7 +1000,7 @@ void setup()
 
   // Variablen werden gesetzt
   bLokDiscovery = false;
-  initialDataAlreadySent = false;
+//%  initialDataAlreadySent = false;
   locid = 1;
   canguruStatus = waiting4server;
   scanningFinished = false;
@@ -1028,7 +1028,7 @@ void setup()
   // start the TCP-server
   TCPINSYS.begin();
   //
-  if (!LittleFS.begin())
+  if (!LittleFS.begin(true))
   {
     log_e("An Error has occurred while mounting LittleFS");
     return;
