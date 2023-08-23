@@ -906,6 +906,9 @@ void proc_fromWDP2CAN()
       produceFrame(M_CALL4CONNECTISDONE);
       proc2Clnts(M_PATTERN, fromGW2Clnt);
       set_SYSseen(true);
+      // Schienenspannung einschalten
+      produceFrame(M_GO);
+      proc2Clnts(M_PATTERN, fromGW2Clnt);
     }
     proc2CAN(UDPbuffer, fromWDP2CAN);
     log_d("fromServer2CAN: %X", UDPbuffer[0x01]);
