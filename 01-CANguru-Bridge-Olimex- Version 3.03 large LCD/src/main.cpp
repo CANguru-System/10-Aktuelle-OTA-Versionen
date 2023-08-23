@@ -908,6 +908,7 @@ void proc_fromWDP2CAN()
       set_SYSseen(true);
       // Schienenspannung einschalten
       produceFrame(M_GO);
+      proc2CAN(M_PATTERN, fromWDP2CAN);
       proc2Clnts(M_PATTERN, fromGW2Clnt);
     }
     proc2CAN(UDPbuffer, fromWDP2CAN);
