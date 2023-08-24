@@ -304,7 +304,7 @@ void sendOutClnt(uint8_t *buffer, CMD dir)
     send2OneClient(buffer);
     break;
   case SYS_CMD:
-    switch (buffer[0x09])
+    switch (buffer[data4])
     {
     case SYS_STAT:
     case RESET_MEM:
@@ -902,6 +902,7 @@ void proc_fromWDP2CAN()
     // send received data via usb and CAN
     if (UDPbuffer[0x01] == SYS_CMD && UDPbuffer[0x09] == SYS_GO)
     {
+      log_i("WDP has been startet");
       // Meldung an die Clients, dass WDP gestartet wurde
       produceFrame(M_CALL4CONNECTISDONE);
       proc2Clnts(M_PATTERN, fromGW2Clnt);
@@ -909,6 +910,7 @@ void proc_fromWDP2CAN()
       // Schienenspannung einschalten
       produceFrame(M_GO);
       proc2CAN(M_PATTERN, fromWDP2CAN);
+      delay(wait_time_small);
       proc2Clnts(M_PATTERN, fromGW2Clnt);
     }
     proc2CAN(UDPbuffer, fromWDP2CAN);
@@ -920,15 +922,6 @@ void proc_fromWDP2CAN()
       sendToWDP(M_PATTERN);
       log_d("PING");
       set_SYSseen(true);
-/*      if (initialDataAlreadySent == false)
-      {
-        initialDataAlreadySent = true;
-        uint8_t no_slv = get_slaveCnt();
-        for (uint8_t slv = 0; slv < no_slv; slv++)
-        {
-          set_initialData2send(slv);
-        }
-      }*/
       //      produceFrame(M_CAN_PING_CS2_2);
       //      sendToWDP(M_PATTERN);
       set_SYSseen(true);

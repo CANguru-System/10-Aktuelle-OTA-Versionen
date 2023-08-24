@@ -22,19 +22,14 @@
 #include <OTA_include.h>
 
 const uint8_t maxCntChannels = 16;
-const uint8_t minCntChannels = 8;
-uint8_t cntChannels;
 
 // EEPROM-Adressen
 #define setup_done 0x47
 // EEPROM-Belegung
 // EEPROM-Speicherplätze der Local-IDs
-const uint16_t adr_decoderadr = lastAdr0 + 0x01;
-const uint16_t adr_cntChannels = lastAdr0 + 0x02;
-const uint16_t lastAdr = adr_cntChannels + 1;
+const uint16_t adr_index = lastAdr0 + 0x01;
+const uint16_t lastAdr = adr_index + maxCntChannels;
 #define EEPROM_SIZE lastAdr
-
-#define CAN_FRAME_SIZE 13 /* maximum datagram size */
 
 // config-Daten
 // Parameter-Kanäle
@@ -43,12 +38,26 @@ enum Kanals
   Kanal00,
   Kanal01,
   Kanal02,
+  Kanal03,
+  Kanal04,
+  Kanal05,
+  Kanal06,
+  Kanal07,
+  Kanal08,
+  Kanal09,
+  Kanal10,
+  Kanal11,
+  Kanal12,
+  Kanal13,
+  Kanal14,
+  Kanal15,
+  Kanal16,
   endofKanals
 };
 
 Kanals CONFIGURATION_Status_Index = Kanal00;
 
-uint8_t decoderadr;
+const uint8_t decoderadr = 1;
 uint8_t uid_device[uid_num];
 
 // Zeigen an, ob eine entsprechende Anforderung eingegangen ist
@@ -59,7 +68,6 @@ bool SEND_IP_Request = false;
 
 // Timer
 boolean statusPING;
-boolean initialData2send;
 
 #define VERS_HIGH 0x00 // Versionsnummer vor dem Punkt
 #define VERS_LOW 0x02  // Versionsnummer nach dem Punkt
@@ -82,6 +90,8 @@ uint8_t channels[maxCntChannels];
 uint8_t msecs[maxCntChannels];
 uint8_t inputValue[maxCntChannels];
 
+uint8_t channel_index[maxCntChannels] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
+
 // Protokollkonstante
 #define PROT MM_ACC
 
@@ -102,22 +112,25 @@ const float tckr0Time = 0.0075 / maxCntChannels;
 void process_sensor_event(uint8_t channel)
 {
   memset(opFrame, 0, sizeof(opFrame));
-  opFrame[0x01] = S88_EVENT;
+  opFrame[CANcmd] = S88_EVENT;
   // Adresse (maximal 255), d.h. 10 Module
-  opFrame[0x08] = channel + (decoderadr - 1) * maxCntChannels + 1;
+
+  //  opFrame[data3] = channel + (decoderadr - 1) * maxCntChannels + 1;
+  opFrame[data3] = channel_index[channel];
   // Zustand
   // alt und neu
   if (channels[channel] == isOccupied)
   {
-    opFrame[0x09] = isFree;
-    opFrame[0x0A] = isOccupied;
+    opFrame[data4] = isFree;
+    opFrame[data5] = isOccupied;
+    log_i("occupied: %d", opFrame[data3]);
   }
   else
   {
-    opFrame[0x09] = isOccupied;
-    opFrame[0x0A] = isFree;
+    opFrame[data4] = isOccupied;
+    opFrame[data5] = isFree;
   }
-  opFrame[0x04] = 8;
+  opFrame[Framelng] = 8;
   sendCanFrame();
 }
 
@@ -163,7 +176,7 @@ void timer1ms()
     inputValue[currChannel] = 0;
   }
   currChannel++;
-  if (currChannel >= cntChannels)
+  if (currChannel >= maxCntChannels)
   {
     currChannel = 0;
   }
@@ -172,16 +185,24 @@ void timer1ms()
 void setup()
 {
   Serial.begin(bdrMonitor);
-  Serial.println("\r\n\r\nR ü c k m e l d e r");
+  delay(500);
+  log_i("\r\n\r\nC A N g u r u - B e s e t z t m e l d e r");
+  log_i("\n on %s", ARDUINO_BOARD);
+  log_i("CPU Frequency = %d Mhz", F_CPU / 1000000);
+//  log_e("ERROR!");
+//  log_d("VERBOSE");
+//  log_w("WARNING");
+//  log_i("INFO");
   // der Decoder strahlt mit seiner Kennung
   // damit kennt die CANguru-Bridge (der Master) seine Decoder findet
+  DEVTYPE = DEVTYPE_RM;
   startAPMode();
   // der Master wird registriert
   addMaster();
   WiFi.disconnect();
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    Serial.println("failed to initialise EEPROM");
+    log_e("Failed to initialise EEPROM");
   }
   uint8_t setup_todo = EEPROM.read(adr_setup_done);
   if (setup_todo != setup_done)
@@ -192,15 +213,12 @@ void setup()
     // dann wird dieser Anteil übersprungen
     // 47, weil das EEPROM (hoffentlich) nie ursprünglich diesen Inhalt hatte
 
-    // setzt die Boardnum anfangs auf 1
-    decoderadr = 1;
-    EEPROM.write(adr_decoderadr, decoderadr);
-    EEPROM.commit();
+    for (uint8_t ch = 0; ch < maxCntChannels; ch++)
+    {
+      EEPROM.write(adr_index + ch, channel_index[ch]);
+      EEPROM.commit();
+    }
 
-    // Anzahl der angeschlossenen Melder
-    cntChannels = maxCntChannels;
-    EEPROM.write(adr_cntChannels, cntChannels);
-    EEPROM.commit();
     // ota auf "FALSE" setzen
     EEPROM.write(adr_ota, startWithoutOTA);
     EEPROM.commit();
@@ -214,10 +232,10 @@ void setup()
     if (ota == startWithoutOTA)
     {
       // nach dem ersten Mal Einlesen der gespeicherten Werte
-      // Adresse
-      decoderadr = readValfromEEPROM(adr_decoderadr, minadr, minadr, maxadr);
-      // Anzahl der angeschlossenen Melder
-      cntChannels = readValfromEEPROM(adr_cntChannels, maxCntChannels, minCntChannels, maxCntChannels);
+      for (uint8_t ch = 0; ch < maxCntChannels; ch++)
+      {
+        channel_index[ch] = readValfromEEPROM(adr_index + ch, minadr, minadr, maxadr);
+      }
     }
     else
     {
@@ -240,7 +258,6 @@ void setup()
   START_OTA_Request = false;
   SEND_IP_Request = false;
   statusPING = false;
-  initialData2send = false;
   time2Poll = 0;
   memset(msecs, 0, sizeof(msecs));
   memset(inputValue, 0, sizeof(inputValue));
@@ -254,144 +271,27 @@ void setup()
   stillAliveBlinkSetup();
 }
 
-// Zu Beginn des Programmablaufs werden die aktuellen Statusmeldungen an WDP geschickt
-void sendTheInitialData()
-{
-  initialData2send = false;
-  for (uint8_t ch = 0; ch < cntChannels; ch++)
-  {
-    process_sensor_event(ch);
-    delay(wait_time_medium);
-  }
-}
-
-/*
-Response
-Bestimmt, ob CAN Meldung eine Anforderung oder Antwort oder einer
-vorhergehende Anforderung ist. Grundsätzlich wird eine Anforderung
-ohne ein gesetztes Response Bit angestoßen. Sobald ein Kommando
-ausgeführt wurde, wird es mit gesetztem Response Bit, sowie dem
-ursprünglichen Meldungsinhalt oder den angefragten Werten, bestätigt.
-Jeder Teilnehmer am Bus, welche die Meldung ausgeführt hat, bestätigt ein
-Kommando.
-*/
-void sendCanFrame()
-{
-  // opFrame[4] ist die Anzahl der gesetzten Datenbytes
-  // alle Bytes jenseits davon werden auf 0x00 gesetzt
-  for (uint8_t i = CAN_FRAME_SIZE - 1; i < 8 - opFrame[4]; i--)
-    opFrame[i] = 0x00;
-  // durch Increment wird das Response-Bit gesetzt
-  opFrame[1]++;
-  // opFrame[2] und opFrame[3] enthalten den Hash, der zu Beginn des Programmes
-  // einmal errechnet wird
-  opFrame[2] = hasharr[0];
-  opFrame[3] = hasharr[1];
-  sendTheData();
-}
-
-/*
-CAN Grundformat
-Das CAN Protokoll schreibt vor, dass Meldungen mit einer 29 Bit Meldungskennung,
-4 Bit Meldungslänge sowie bis zu 8 Datenbyte bestehen.
-Die Meldungskennung wird aufgeteilt in die Unterbereiche Priorit�t (Prio),
-Kommando (Command), Response und Hash.
-Die Kommunikation basiert auf folgendem Datenformat:
-
-Meldungskennung
-Prio	2+2 Bit Message Prio			28 .. 25
-Command	8 Bit	Kommando Kennzeichnung	24 .. 17
-Resp.	1 Bit	CMD / Resp.				16
-Hash	16 Bit	Kollisionsaufl�sung		15 .. 0
-DLC
-DLC		4 Bit	Anz. Datenbytes
-Byte 0	D-Byte 0	8 Bit Daten
-Byte 1	D-Byte 1	8 Bit Daten
-Byte 2	D-Byte 2	8 Bit Daten
-Byte 3	D-Byte 3	8 Bit Daten
-Byte 4	D-Byte 4	8 Bit Daten
-Byte 5	D-Byte 5	8 Bit Daten
-Byte 6	D-Byte 6	8 Bit Daten
-Byte 7	D-Byte 7	8 Bit Daten
-*/
-
 // receiveKanalData dient der Parameterübertragung zwischen Decoder und CANguru-Server
 // es erhält die evtuelle auf dem Server geänderten Werte zurück
 void receiveKanalData()
 {
   SYS_CMD_Request = false;
-  uint8_t oldval;
-  switch (opFrame[10])
+
+  uint8_t oldval = channel_index[opFrame[data5] - 1];
+  channel_index[opFrame[data5] - 1] = (opFrame[data6] << 8) + opFrame[data7];
+  if (testMinMax(oldval, channel_index[opFrame[data5] - 1], minadr, maxadr))
   {
-  // Kanalnummer #1 - Decoderadresse
-  case 1:
-  {
-    oldval = decoderadr;
-    decoderadr = (opFrame[11] << 8) + opFrame[12];
-    if (testMinMax(oldval, decoderadr, minadr, maxadr))
-    {
-      // speichert die neue Adresse
-      EEPROM.write(adr_decoderadr, decoderadr);
-      EEPROM.commit();
-    }
-    else
-    {
-      decoderadr = oldval;
-    }
+    // speichert die neue Adresse
+    EEPROM.write(adr_index + opFrame[data5] - 1, channel_index[opFrame[data5] - 1]);
+    EEPROM.commit();
   }
-  break;
-  // Kanalnummer #1 - Anzahl Kanäle / Melder
-  case 2:
+  else
   {
-    oldval = cntChannels;
-    cntChannels = (opFrame[11] << 8) + opFrame[12];
-    if (testMinMax(oldval, cntChannels, minCntChannels, maxCntChannels))
-    {
-      // speichert die neue Anzahl
-      EEPROM.write(adr_cntChannels, cntChannels);
-      EEPROM.commit();
-    }
-    else
-    {
-      cntChannels = oldval;
-    }
-  }
-  break;
+    channel_index[opFrame[data5] - 1] = oldval;
   }
   // antworten
-  opFrame[11] = 0x01;
-  opFrame[4] = 0x07;
-  sendCanFrame();
-}
-
-// sendPING ist die Antwort der Decoder auf eine PING-Anfrage
-void sendPING()
-{
-  statusPING = false;
-  opFrame[1] = PING;
-  opFrame[4] = 0x08;
-  for (uint8_t i = 0; i < uid_num; i++)
-  {
-    opFrame[i + 5] = uid_device[i];
-  }
-  opFrame[9] = VERS_HIGH;
-  opFrame[10] = VERS_LOW;
-  opFrame[11] = DEVTYPE_RM >> 8;
-  opFrame[12] = DEVTYPE_RM;
-  sendCanFrame();
-  if (time2Poll == 0)
-    time2Poll = millis();
-}
-
-// sendIP ist die Antwort der Decoder auf eine Abfrage der IP-Adresse
-void sendIP()
-{
-  SEND_IP_Request = false;
-  opFrame[1] = SEND_IP;
-  opFrame[4] = 0x08;
-  // IP-Adresse eintragen
-  for (uint8_t ip = 0; ip < 4; ip++)
-    opFrame[5 + ip] = IP[ip];
+  opFrame[data6] = 0x01;
+  opFrame[Framelng] = 0x07;
   sendCanFrame();
 }
 
@@ -401,88 +301,80 @@ void sendConfig()
 {
   const uint8_t Kanalwidth = 8;
   const uint8_t numberofKanals = endofKanals - 1;
-
-  const uint8_t NumLinesKanal00 = 5 * Kanalwidth;
-  uint8_t arrKanal00[NumLinesKanal00] = {
-      /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
-      /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
-      /*2.2*/ (uint8_t)highbyte2char(hex2dec(uid_device[1])), (uint8_t)lowbyte2char(hex2dec(uid_device[1])),
-      /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
-      /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
-      /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
-      /*4*/ 'B', 'e', 's', 'e', 't', 'z', 't', '-',
-      /*5*/ 'M', 'e', 'l', 'd', 'e', 'r', 0, 0};
-  const uint8_t NumLinesKanal01 = 4 * Kanalwidth;
-  uint8_t arrKanal01[NumLinesKanal01] = {
-      // #2 - WORD immer Big Endian, wie Uhrzeit
-      /*1*/ Kanal01, 2, 0, 1, 0, maxadr, 0, decoderadr,
-      /*2*/ 'M', 'e', 'l', 'd', 'e', 'r', 'a', 'd',
-      /*3*/ 'r', 'e', 's', 's', 'e', 0, '0', 0,
-      /*4*/ (maxadr / 100) + '0', (maxadr - (uint8_t)(maxadr / 100) * 100) / 10 + '0', (maxadr - (uint8_t)(maxadr / 10) * 10) + '0', 0, 'A', 'd', 'r', 0};
-  const uint8_t NumLinesKanal02 = 5 * Kanalwidth;
-  uint8_t arrKanal02[NumLinesKanal02] = {
-      // #2 - WORD immer Big Endian, wie Uhrzeit
-      /*1*/ Kanal02, 2, 0, minCntChannels, 0, maxCntChannels, 0, cntChannels,
-      /*2*/ 'A', 'n', 'z', 'a', 'h', 'l', ' ', 'M',
-      /*3*/ 'e', 'l', 'd', 'e', 'r', 0, '0', 0,
-      /*4*/ (maxCntChannels / 100) + '0', (maxCntChannels - (uint8_t)(maxCntChannels / 100) * 100) / 10 + '0', (maxCntChannels - (uint8_t)(maxCntChannels / 10) * 10) + '0', 0, 'C', 'n', 't',
-      /*5*/ 0, 0, 0, 0, 0, 0, 0, 0};
-  uint8_t NumKanalLines[numberofKanals + 1] = {
-      NumLinesKanal00, NumLinesKanal01, NumLinesKanal02};
+  uint8_t NumKanalLines;
+  // Kanal 0
+  const uint8_t NumKanalLines00 = 5 * Kanalwidth;
+  uint8_t arrKanal00[NumKanalLines00] = {0};
+  // Kanal 01 .. 16
+  const uint8_t NumKanalLinesCH = 3 * Kanalwidth;
+  uint8_t arrKanalCH[NumKanalLinesCH] = {0};
+  if (CONFIGURATION_Status_Index == Kanal00)
+  {
+    NumKanalLines = NumKanalLines00;
+    uint arrKanal0[NumKanalLines] = {
+        /*1*/ Kanal00, numberofKanals, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0, decoderadr,
+        /*2.1*/ (uint8_t)highbyte2char(hex2dec(uid_device[0])), (uint8_t)lowbyte2char(hex2dec(uid_device[0])),
+        /*2.2*/ (uint8_t)highbyte2char(hex2dec(uid_device[1])), (uint8_t)lowbyte2char(hex2dec(uid_device[1])),
+        /*2.3*/ (uint8_t)highbyte2char(hex2dec(uid_device[2])), (uint8_t)lowbyte2char(hex2dec(uid_device[2])),
+        /*2.4*/ (uint8_t)highbyte2char(hex2dec(uid_device[3])), (uint8_t)lowbyte2char(hex2dec(uid_device[3])),
+        /*3*/ 'C', 'A', 'N', 'g', 'u', 'r', 'u', ' ',
+        /*4*/ 'B', 'e', 's', 'e', 't', 'z', 't', '-',
+        /*5*/ 'M', 'e', 'l', 'd', 'e', 'r', 0, 0};
+        for (uint8_t c = 0; c < NumKanalLines; c++)
+          arrKanal00[c] = arrKanal0[c];
+  }
+  else
+  {
+    NumKanalLines = NumKanalLinesCH;
+    char c0 = '0' + (CONFIGURATION_Status_Index % 10);
+    char c1;
+    if (CONFIGURATION_Status_Index >= 10)
+      c1 = '1';
+    else
+      c1 = '0';
+    uint8_t arrKanal1[NumKanalLines] = {
+        // #2 - WORD immer Big Endian, wie Uhrzeit
+        /*1*/ (uint8_t)(CONFIGURATION_Status_Index), 2, 0, minadr, 0, maxadr, 0, channel_index[CONFIGURATION_Status_Index - 1],
+        /*2*/ 'K', 'a', 'n', 'a', 'l', ':', ' ', c1,
+        /*3*/ c0, 0, (maxadr / 100) + '0', (maxadr - (uint8_t)(maxadr / 100) * 100) / 10 + '0', (maxadr - (uint8_t)(maxadr / 10) * 10) + '0', 0, 0, 0};
+        for (uint8_t c = 0; c < NumKanalLines; c++)
+          arrKanalCH[c] = arrKanal1[c];
+  }
 
   uint8_t paket = 0;
   uint8_t outzeichen = 0;
   CONFIG_Status_Request = false;
-  for (uint8_t inzeichen = 0; inzeichen < NumKanalLines[CONFIGURATION_Status_Index]; inzeichen++)
+  for (uint8_t inzeichen = 0; inzeichen < NumKanalLines; inzeichen++)
   {
-    opFrame[1] = CONFIG_Status + 1;
-    switch (CONFIGURATION_Status_Index)
-    {
-    case Kanal00:
-    {
+    opFrame[CANcmd] = CONFIG_Status + 1;
+    if (CONFIGURATION_Status_Index == Kanal00)
       opFrame[outzeichen + 5] = arrKanal00[inzeichen];
-    }
-    break;
-    case Kanal01:
-    {
-      opFrame[outzeichen + 5] = arrKanal01[inzeichen];
-    }
-    break;
-    case Kanal02:
-    {
-      opFrame[outzeichen + 5] = arrKanal02[inzeichen];
-    }
-    break;
-    case endofKanals:
-    {
-      // der Vollständigkeit geschuldet
-    }
-    break;
-    }
+    else
+      opFrame[outzeichen + 5] = arrKanalCH[inzeichen];
     outzeichen++;
     if (outzeichen == 8)
     {
-      opFrame[4] = 8;
+      opFrame[Framelng] = 8;
       outzeichen = 0;
       paket++;
-      opFrame[2] = 0x00;
-      opFrame[3] = paket;
+      opFrame[hash0] = 0x00;
+      opFrame[hash1] = paket;
       sendTheData();
       delay(wait_time_small);
     }
   }
   //
   memset(opFrame, 0, sizeof(opFrame));
-  opFrame[1] = CONFIG_Status + 1;
-  opFrame[2] = hasharr[0];
-  opFrame[3] = hasharr[1];
-  opFrame[4] = 0x06;
+  opFrame[CANcmd] = CONFIG_Status + 1;
+  opFrame[hash0] = hasharr[0];
+  opFrame[hash1] = hasharr[1];
+  opFrame[Framelng] = 0x06;
   for (uint8_t i = 0; i < 4; i++)
   {
     opFrame[i + 5] = uid_device[i];
   }
-  opFrame[9] = CONFIGURATION_Status_Index;
-  opFrame[10] = paket;
+  opFrame[data4] = CONFIGURATION_Status_Index;
+  opFrame[data5] = paket;
   sendTheData();
   delay(wait_time_small);
 }
@@ -532,12 +424,6 @@ void loop()
     if (CONFIG_Status_Request)
     {
       sendConfig();
-    }
-    // beim ersten Durchlauf werden Initialdaten an die
-    // CANguru-Bridge gesendet
-    if (initialData2send)
-    {
-      sendTheInitialData();
     }
   }
 }
