@@ -60,6 +60,8 @@ goto :loop
 
 :PREPARE_OTA
 @echo on
+REM Weist dem Decoder eine IP-Adresse zu; anschließend sollte diese Adresse im Browser aufgerufen werden;
+REM dann kann von dort eine Software (firmware.bin) ausgewählt und auf den Decoder geladen werden
 esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 Prepare-OTA/bootloader.bin 0x8000 Prepare-OTA/partitions.bin 0xe000 Prepare-OTA/boot_app0.bin 0x10000 Prepare-OTA/firmware.bin
 Putty\putty.exe -serial %COMPORT% -sercfg 115200,8,n,1,N
 @echo off
@@ -69,6 +71,7 @@ goto :loop
 
 :UPLOAD_BRIDGE
 @echo on
+REM Geht davon aus, dass die aktuelle Bridge-Software im Verzeichnis CANguru-Bridge steht; lädt diese Software auf den Olimex ESP32-EVB hoch
 esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 CANguru-Bridge/bootloader.bin 0x8000 CANguru-Bridge/partitions.bin 0x10000 CANguru-Bridge/firmware.bin
 @echo off
 echo.
@@ -77,6 +80,8 @@ goto :loop
 
 :UPLOAD_FIRMWARE
 @echo on
+REM Geht davon aus, dass die aktuelle Decoder-Software im Verzeichnis CANguru-Files steht; weist dem Decoder eine IP-Adresse zu;
+REM lädt anschließend diese Software (firmware.bin) auf den Decoder hoch
 esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 Prepare-Upload/bootloader.bin 0x8000 Prepare-Upload/partitions.bin 0x10000 Prepare-Upload/firmware.bin
 Putty\putty.exe -serial %COMPORT% -sercfg 115200,8,n,1,N
 esptool.exe --chip esp32 --port %COMPORT% --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 CANguru-Files/bootloader.bin 0x8000 CANguru-Files/partitions.bin 0x10000 CANguru-Files/firmware.bin
