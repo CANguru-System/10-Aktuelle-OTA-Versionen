@@ -1,0 +1,6 @@
+Nach dem Laden der firmware.bin muss der Steppermotor eingestellt werden. Dazu:
+Betätigen des Tasters; der Schieber läuft in die Richtung Motor/Getriebe;
+dann erneutes Betätigen des Tasters; das ist die hintere Position des Schiebers; der Schieber läuft nun in die entgegemngesetzte Richtung;
+ein erneutes Betätigen des Tasters stoppt den Motor. Der Schieber hat die vordewre Position erreicht.
+
+Wenn die Positionen verändert werden sollen, dann kann der obige Vorgang beliebig oft wiederholt werden. Dabei sollte sich der Schieber zu Beginn in der vorderen Position befinden.
