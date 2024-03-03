@@ -1,0 +1,108 @@
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\bin\Debug\CANguru.exe.config
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\bin\Debug\CANguru.exe
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\bin\Debug\CANguru.pdb
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\CANguruX.Form1.resources
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\CANguru.exe
+E:\365\OneDrive - implement mission-critical ROI\08 Downloadbereich CANguru\02 Tag 2 CANguru-Bridge & Server\CANguru-Server\CANguru\obj\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe.config
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguruX.Form1.resources
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe.config
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguruX.Form1.resources
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\15 Anlage Steinheim\04-Tag-4-master\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe.config
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguruX.Form1.resources
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe.config
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\bin\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguruX.Form1.resources
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\12 Car System\02-Tag-2-CANguru-Server\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+E:\v17209\OneDrive - implement mission-critical ROI\11 Railroad\02 CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+D:\v17209\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CoreCompileInputs.cache
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
+C:\OneDrive - Moe, Inc\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csprojAssemblyReference.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe.config
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\CANguru.pdb
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\ZLIB.dll
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\bin\Debug\zlib.net.dll
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguruX.Form1.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CoreCompileInputs.cache
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.pdb
+C:\CANguru-Drive\OneDrive\03 CANguru Aktuelle Versionen\02-CANguru-Server Version 2\CANguru\obj\Debug\CANguru.csproj.AssemblyReference.cache
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\bin\Debug\CANguru.exe.config
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\bin\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\bin\Debug\CANguru.pdb
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\bin\Debug\ZLIB.dll
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\bin\Debug\zlib.net.dll
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.csproj.AssemblyReference.cache
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguruX.Form1.resources
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\UDP_ClntSrvr.Properties.Resources.resources
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.csproj.GenerateResource.cache
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.csproj.CoreCompileInputs.cache
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.csproj.CopyComplete
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.exe
+C:\CANguru-Drive\OneDrive\21 Stepper\02-CANguru-Server Version 3.5\CANguru\obj\Debug\CANguru.pdb
