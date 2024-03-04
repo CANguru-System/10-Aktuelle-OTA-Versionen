@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "Preferences.h"
 #include "CANguruDefs.h"
 #include "CANguru.h"
 #include <CAN_const.h>
