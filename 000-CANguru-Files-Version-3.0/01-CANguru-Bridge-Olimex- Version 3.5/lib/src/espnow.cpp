@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include <espnow.h>
+#include "Preferences.h"
 #include <CANguruDefs.h>
 #include <CAN_const.h>
 #include "MOD-LCD.h"
